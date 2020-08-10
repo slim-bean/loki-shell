@@ -75,6 +75,8 @@ If you find yourself experimenting more with Loki after this check out these blo
 
 ## Setting it up
 
+### Initial Housekeeping
+
 To start lets make a directory where we can store configs and our tooling:
 
 ```bash
@@ -82,19 +84,48 @@ cd ~
 mkdir .loki-shell
 cd .loki-shell/
 git clone https://github.com/slim-bean/loki-shell-history.git
-cp -r loki-shell-history/cfg .
+cp -r loki-shell-history/cfg/ .
 ```
 
+The last command copies the config files out of the git repo and into `~/.loki-shell/cfg`.
+This is optional, if you want you could fork my repo and keep your configs in source control, just be mindful with access keys and public git repos.
 
-### What you need
+Other configs and settings in this guide will reference the config files in `~/.loki-shell/cfg`
 
-You can clone or download the files required from my git repo:
+In the future you can `git pull` this repo to see if there are changes or improvements made to the config file.
+
+### Download
+
+```bash
+cd ~/.loki-shell
+mkdir bin
+cd bin
+wget
+wget
+wget
+```
+
+If you are going to run Loki in docker you can skip the last download.
 
 
-Create directories
 
-#### fzf
+### fzf
 
+I have a fork of fzf in which I changed the history command to query Loki when `ctrl-r` is pressed, in the future I would like to come up with a better way to handle this part and eliminate the need for a fork.
+
+If you already have fzf installed it may be best to uninstall it and follow these steps, or you can try to find the `key-bindings.bash` file and replace it with the one from my fork in the `loki` branch.
+
+My apologies, I only updated the bash keybindings, if you are using a different shell you can probably make similar changes based on what I did in `key-bindings.bash`.
+
+#### Installing from git
+
+```bash
+cd ~
+git clone https://github.com/slim-bean/fzf.git ~/.fzf
+cd .fzf
+git checkout loki
+./install
+``` 
 
 
 ### Setting up Loki
@@ -123,12 +154,23 @@ docker run
 
 #### Standalone
 
-wget loki
 systemd
 
-### Modifying PROMPT_COMMAND
+### Modify .bashrc
 
-### Modifying fzf key bindings
+There are 2 changes we need to make to `.bashrc` the first is to make sure every command gets sent to Loki.
+
+```shell
+# Send all bash commands to Loki with promtail
+function _send_to_loki {
+        (HISTTIMEFORMAT= builtin history 1 | sed 's/^ *\([0-9]*\)\** *//' | promtail -config.file=/home/ed/projects/loki/cmd/promtail/promtail-logging-config.yaml --stdin -server.disable=true -log.level=warn --client.external-labels=host=$HOSTNAME 1>&2 &)
+}
+[[ $PROMPT_COMMAND =~ _send_to_loki ]] || PROMPT_COMMAND="_send_to_loki;${PROMPT_COMMAND:-:}"
+
+# Put Promtail/Loki/Logcli binaries on the path
+[[ $PATH =~ .loki-shell ]] || PATH="$HOME/.loki-shell/bin:${PATH:-:}"
+```
 
 ## Extras
 
+Running Loki remotely

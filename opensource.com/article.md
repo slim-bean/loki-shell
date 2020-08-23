@@ -123,7 +123,7 @@ sed -i "s|FIXME|$HOME|g" loki-local-config.yaml
 At this point you can run Loki!
 
 ```bash
-~/.loki-shell/bin/loki -config.file=~/.loki-shell/config/loki-local-config.yaml
+~/.loki-shell/bin/loki -config.file=ABSOLUTE_PATH_TO/.loki-shell/config/loki-local-config.yaml
 ```
 
 However if you want Loki to run in the background and enable it across reboots we can create a systemd service for it. 

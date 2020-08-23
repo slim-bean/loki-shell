@@ -28,9 +28,9 @@ There are solutions to the first problem however I think we can improve on them 
 
 Loki was built to expand the very successful and intuitive label model used by Prometheus into the world of log aggregation and enable developers and operators to seamlessly pivot between their metrics and logs by using the same set of labels. Not using Prometheus? No worries, there are still plenty of reasons why Loki might be a good fit for your log storage needs.  
 
-Low overhead: Loki does NOT do full text log indexing; it only creates an index of the labels you put on your logs. Keeping a small index substantially reduces the operating requirements of Loki. In fact, in this guide I will be running Loki on a Raspberry Pi using just a bit over 50MB of memory.
-Low cost: The log content is compressed and stored in object stores like S3, GCS, Azure Blob, or even directly on a filesystem. The goal is to store the logs as cheaply as possible.
-Flexibility: Loki is available in a single binary compiled for many architectures and can be run directly on any machine. It is also provided as a Docker image to unlock any environment that can run Docker containers. If you have a Kubernetes installation, it can be deployed via Helm chart. Finally, if you really demand a lot from your logging application, you can look at the production setup running at Grafana Labs, which uses `tanka` FIXME LINK and ksonnet to take the same binary/Docker image and run it as discrete components. This enables massive horizontal scaling, high availability, replication, separation of read and write paths (for higher reliability and separate scalability), highly parallelizable querying, and more.
+* Low overhead: Loki does NOT do full text log indexing; it only creates an index of the labels you put on your logs. Keeping a small index substantially reduces the operating requirements of Loki. In fact, in this guide I will be running Loki on a Raspberry Pi using just a bit over 50MB of memory.
+* Low cost: The log content is compressed and stored in object stores like S3, GCS, Azure Blob, or even directly on a filesystem. The goal is to store the logs as cheaply as possible.
+* Flexibility: Loki is available in a single binary compiled for many architectures and can be run directly on any machine. It is also provided as a Docker image to unlock any environment that can run Docker containers. If you have a Kubernetes installation, it can be deployed via Helm chart. Finally, if you really demand a lot from your logging application, you can look at the production setup running at Grafana Labs, which uses `tanka` FIXME LINK and ksonnet to take the same binary/Docker image and run it as discrete components. This enables massive horizontal scaling, high availability, replication, separation of read and write paths (for higher reliability and separate scalability), highly parallelizable querying, and more.
 
 In summary, Loki takes the approach of keeping a small index of metadata about your logs (labels) and storing log content itself unindexed and compressed in inexpensive object stores to make operating easier and cheaper. The application is built to run as a single process and easily evolve into a highly available distributed system as needed. High query performance is obtained on larger logging workloads through parallelization and sharding of queries, a bit like MapReduce for your logs.  
 
@@ -40,7 +40,7 @@ The best part? All of this functionality is available for anyone to use, for fre
 
 One of the challenges I’ve had writing this article is narrowing down all the options into something that covers as many people as possible. There are many ways to run Loki with many different storage options, not to mention there are many excellent shells out there! Too many options! I ultimately decided to choose two shells, Bash for its ubiquity and Zsh for its popularity. For running Loki I have chosen Docker because it handles running/upgrading easily, and for storage I’m using an S3-compatible service called Wasabi to have an offsite high-durability backup that is inexpensive. 
 
-**Note:** We will not be changing any existing behaviors around history, your existing shell history command and history settings will be untouched. We are hooking command history to duplicate it to Loki via `$PROMPT_COMMAND` in Bash and `precmd` in Zsh, and on the `ctrl-r` side of things we are overloading the function fzf uses to hook the `ctrl-r` command.  It is safe to try this and if you decide you don't like it follow the steps in the Uninstall section and it will be like nothing ever happened!
+**Note:** We will not be changing any existing behaviors around history, **your existing shell history command and history settings will be untouched.** We are hooking command history to duplicate it to Loki via `$PROMPT_COMMAND` in Bash and `precmd` in Zsh, and on the `ctrl-r` side of things we are overloading the function fzf uses to hook the `ctrl-r` command.  It is safe to try this and if you decide you don't like it follow the steps in the Uninstall section and it will be like nothing ever happened!
 
 
 The config files and some additional instructions can be found in a git repo I made for this project: https://github.com/slim-bean/loki-shell
@@ -55,6 +55,8 @@ mkdir .loki-shell && cd .loki-shell && mkdir data bin config
 ### Step 1: Set up Loki.
 
 I’m going to run Loki on localhost to keep the URL’s compatible for everyone to get started quickly. However ultimately you will want Loki running somewhere accessible from all your machines. My current setup I’m running Loki on a Raspberry Pi (still within docker). More options and details can be found in the [git repo](https://github.com/slim-bean/loki-shell).
+
+At the time of this article 1.6.0 was the most recent Loki version but check [the Loki release page](https://github.com/grafana/loki/releases) to see if there is a newer version available!
 
 The Loki process in the Docker image runs as user 10001:10001 so to be able to write to the data directory we created we need to change the owner:
 
@@ -135,7 +137,14 @@ level=info ts=2020-08-23T13:06:21.1929967Z caller=lifecycler.go:370 msg="auto-jo
 
 ### Step 2: Install fzf
 
-There are several ways to install fzf but I prefer [the git instructions](https://github.com/junegunn/fzf#using-git) as this will get you the most recent version and also makes updates as simple as 
+There are several ways to install fzf but I prefer [the git instructions](https://github.com/junegunn/fzf#using-git) which are:
+ 
+```bash 
+git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
+~/.fzf/install
+```
+
+the git install method always gets you the most recent version and also makes updates as simple as
 
 ```bash
 cd ~/.fzf
@@ -147,7 +156,7 @@ Say yes to all the prompted questions.
 
 ### Step 3: Configure your shell
 
-Note: The Loki agent we are using, Promtail, and command line client, logcli, have binaries for several operating systems and architectures. In this example I’m using the fairly common linux-amd64, but please check [the Loki release page](https://github.com/grafana/loki/releases) for other binaries and adjust the following commands accordingly.
+**Note:** Promtail and logcli have binaries for several operating systems and architectures. In this example I’m using the fairly common linux-amd64, but please check [the Loki release page](https://github.com/grafana/loki/releases) for other binaries and adjust the following commands accordingly.
 
 ```bash
 cd ~/.loki-shell/bin
@@ -157,7 +166,7 @@ curl -O -L "https://github.com/grafana/loki/releases/download/v1.6.0/logcli-linu
 unzip logcli-linux-amd64.zip && mv logcli-linux-amd64 logcli
 ```
 
-#### bash
+#### Bash
 
 First we will configure bash to send the history commands to Loki, starting by downloading a promtail config:
 
@@ -182,7 +191,6 @@ function _send_to_loki {
 Next find this line that fzf installed:
 
 ```bash
-# FZF
 [ -f ~/.fzf.bash ] && source ~/.fzf.bash
 ```
 
@@ -191,7 +199,6 @@ Immediately after this we are going to overload the function fzf uses for showin
 NOTE: If you are running Loki on a different host or port change `--addr=http://localhost:4100` accordingly.
 
 ```bash
-# FZF
 [ -f ~/.fzf.bash ] && source ~/.fzf.bash
 
 __fzf_history__() {
@@ -221,7 +228,7 @@ Check out the [getting started guide for logcli](https://grafana.com/docs/loki/l
 Save your `.bashrc` file and reload it with `source ~/.bashrc` or restart your shell!
 
 
-#### zsh
+#### Zsh
 
 First we will configure zsh to send the history commands to Loki, starting by downloading a promtail config:
 
@@ -295,6 +302,19 @@ Open up a web browser at `http://localhost:3000` login using the default admin/a
 
 On the left navigate to `Configuration -> Datasources` click `Add Datasource` button and select `Loki`
 
+For the url you should be able to use `http://localhost:4100` (however on my WSL2 machine I had to use the IP of the computer itself)
+
+Click `Save and Test` you should see `Data source connected and labels found.`
+
+Click on the `Explore` icon on the left, make sure the `Loki` datasource is selected and try out a query: `{job="shell"}`
+
+When you have more hosts sending shell commands you can limit the results to a certain host using the `hostname` label which is being added: `{job="shell", hostname="myhost"}`
+
+You can also look for specific commands with filter expressions `{job="shell"} |= "docker"`
+
+Or you can start exploring the world of metrics from logs `rate({job="shell"}[1m])`!
+
+For a better understanding of Loki's query language [check out this LogQL guide](https://grafana.com/docs/loki/latest/logql/)
 
  
 

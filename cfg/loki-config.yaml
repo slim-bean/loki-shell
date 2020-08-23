@@ -35,9 +35,9 @@ storage_config:
     region: REGION # FIXME Set the correct region
     s3forcepathstyle: true
   boltdb_shipper:
-    active_index_directory: FIXME/.loki-shell/index #FIXME put the path to your home directory
-    shared_store: aws   # Change this if you are using gcs or azure
-    cache_location: FIXME/.loki-shell/boltdb-cache #FIXME put the path to your home directory
+    active_index_directory: /loki/index
+    shared_store: aws   # Change this if you are using gcs or azure, leave for s3
+    cache_location: /loki/boltdb-cache
     cache_ttl: 721h # This is 30days worth of hours, our history query is 30 days so keep all the index files local to improve performance.
 limits_config:
   enforce_metric_name: false

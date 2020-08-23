@@ -8,11 +8,11 @@ I love my shell history and have always been a fanatical _ctrl-r_ user.  About a
 
 Suddenly my searching through commands went from this:
 
-[before](assets/before.gif)
+![before](assets/before.gif)
 
 To this:
 
-[after](assets/with_fzf.gif)
+![after](assets/with_fzf.gif)
 
 fzf has significantly improved my quality of life, but there are still a few areas where my shell history falls short so today we set out to fix these problems with some help from Loki.
 

@@ -14,37 +14,32 @@ To this:
 
 ![after](assets/with_fzf.gif)
 
-fzf has significantly improved my quality of life, but there are still a few areas where my shell history falls short so today we set out to fix these problems with some help from Loki.
+fzf has significantly improved my quality of life, but there are still some missing pieces around my shell history:
 
-The two big issues I would like to solve:
+* Losing shell history when terminals close abruptly, computers crash, computers die, whole disk encryption keys are forgotten...
+* Access to my shell history from all my computers on all my computers. 
 
-* Losing my shell history because the shell was closed before the history was appended
-* Not having a shared shell history between terminals on the same machine or different machines.
-
-Combining Loki and fzf we can solve these problems and more! 
+I think of my shell history as documentation, it's an important story I don't want to lose. Combining Loki with my shell history will help solve these problems and more!
 
 <insert gif here>
 
 ## Background
 
-Loki was built to expand the very successful and intuitive label model used by Prometheus into the world of log aggregation and enable developers and operators to seamlessly pivot between their metrics and logs by using the same set of labels. Not using Prometheus? No worries, there are still plenty of reasons why Loki might be a good fit for your log storage needs.  
+Loki is built to take the very successful and intuitive label model used by the open source [Prometheus](https://prometheus.io/) project and expand it into the world of log aggregation. Enabling developers and operators to seamlessly pivot between their metrics and logs by using the same set of labels. Not using Prometheus? No worries, there are still plenty of reasons why Loki might be a good fit for your log storage needs.  
 
-* Low overhead: Loki does NOT do full text log indexing; it only creates an index of the labels you put on your logs. Keeping a small index substantially reduces the operating requirements of Loki. In fact, in this guide I will be running Loki on a Raspberry Pi using just a bit over 50MB of memory.
-* Low cost: The log content is compressed and stored in object stores like S3, GCS, Azure Blob, or even directly on a filesystem. The goal is to store the logs as cheaply as possible.
-* Flexibility: Loki is available in a single binary compiled for many architectures and can be run directly on any machine. It is also provided as a Docker image to unlock any environment that can run Docker containers. If you have a Kubernetes installation, it can be deployed via Helm chart. Finally, if you really demand a lot from your logging application, you can look at the production setup running at Grafana Labs, which uses [tanka](https://tanka.dev/) and ksonnet to take the same binary/Docker image and run it as discrete components. This enables massive horizontal scaling, high availability, replication, separate scaling of read and write paths, highly parallelizable querying, and more.
+* Low overhead: Loki does NOT do full text log indexing; it only creates an index of the labels you put on your logs. Keeping a small index substantially reduces the operating requirements of Loki. I'm running my loki-shell project on a Raspberry Pi using just a little over 50MB of memory.
+* Low cost: The log content is compressed and stored in object stores like S3, GCS, Azure Blob, or even directly on a filesystem. The goal is to use storage which is inexpensive and durable.
+* Flexibility: Loki is available in a single binary to be downloaded and run directly. It is also provided as a Docker image to run in any container environment. A Helm chart is available to get started quickly in Kubernetes. If you really demand a lot from your logging tools, look at the production setup running at Grafana Labs. Ksonnet and the open source [tanka](https://tanka.dev/) are used to deploy that same Loki image as discrete building blocks enabling massive horizontal scaling, high availability, replication, separate scaling of read and write paths, highly parallelizable querying, and more.
 
-In summary, Loki takes the approach of keeping a small index of metadata about your logs (labels) and storing log content itself unindexed and compressed in inexpensive object stores to make operating easier and cheaper. The application is built to run as a single process and easily evolve into a highly available distributed system as needed. High query performance is obtained on larger logging workloads through parallelization and sharding of queries, a bit like MapReduce for your logs.  
+In summary, Loki takes the approach of keeping a small index of metadata about your logs (labels) and storing log content itself unindexed and compressed in inexpensive object stores to make operating easier and cheaper. The application is built to run as a single process and easily evolve into a highly available distributed system. High query performance can be obtained on larger logging workloads through parallelization and sharding of queries, a bit like MapReduce for your logs.  
 
 The best part? All of this functionality is available for anyone to use, for free, today. Following in the footsteps and success of Grafana, Grafana Labs is committed to making Loki a fully featured, fully open log aggregation software anyone can use.
 
 ## The Solution
 
-One of the challenges I’ve had writing this article is narrowing down all the options into something that covers as many people as possible. There are many ways to run Loki with many different storage options, not to mention there are many excellent shells out there! Too many options! I ultimately decided to choose two shells, Bash for its ubiquity and Zsh for its popularity. For running Loki I have chosen Docker because it handles running/upgrading easily, and for storage I’m using the local fileystem because it's the easiest to get started with. 
+**Note:** We will not be changing any existing behaviors around history, **your existing shell history command and history settings will be untouched.** We are hooking command history to duplicate it to Loki via `$PROMPT_COMMAND` in Bash and `precmd` in Zsh, and on the `ctrl-r` side of things we are overloading the function fzf uses to hook the `ctrl-r` command.  It is safe to try this and if you decide you don't like it follow the steps in the Uninstall section to remove all traces, your shell history will be untouched.
 
-**Note:** We will not be changing any existing behaviors around history, **your existing shell history command and history settings will be untouched.** We are hooking command history to duplicate it to Loki via `$PROMPT_COMMAND` in Bash and `precmd` in Zsh, and on the `ctrl-r` side of things we are overloading the function fzf uses to hook the `ctrl-r` command.  It is safe to try this and if you decide you don't like it follow the steps in the Uninstall section and it will be like nothing ever happened!
-
-
-The config files and some additional instructions can be found in a git repo I made for this project: https://github.com/slim-bean/loki-shell
+The config files and some additional instructions and information to take this project even further can be found at: https://github.com/slim-bean/loki-shell
  
 Let's get started! first we need to make a directory to store config files, binaries and some cached data:
 
@@ -56,6 +51,8 @@ mkdir .loki-shell && cd .loki-shell && mkdir data bin config
 ### Step 1: Set up Loki.
 
 At the time of this article 1.6.0 was the most recent Loki version but check [the Loki release page](https://github.com/grafana/loki/releases) to see if there is a newer version available!
+
+You can choose between running Loki in Docker or the Binary direcctly. Docker is easier and quicker, but certainly isn't necessary, if you prefer you can run Loki as easily as `./loki -config.file=loki-local-config.yaml`
 
 #### Docker
 
@@ -99,7 +96,7 @@ level=info ts=2020-08-23T13:06:21.1929967Z caller=lifecycler.go:370 msg="auto-jo
 
 #### Binary
 
-If you don't have or don't want to use Docker you can run Loki as a binary!
+If you don't have or don't want to use Docker you can run Loki as a binary! In this example I’m using the fairly common linux-amd64, but please check [the Loki release page](https://github.com/grafana/loki/releases) for other architectures and adjust the following commands accordingly.
 
 ```bash
 cd ~/.loki-shell/bin
@@ -120,7 +117,9 @@ There are a few paths which need to be set, all the FIXME's need to become absol
 sed -i "s|FIXME|$HOME|g" loki-local-config.yaml
 ```
 
-At this point you can run Loki!
+TIL you can use any character in sed it doesn't have to be a `/` and if you want to substitute and env variable that has paths in it this is a convenient feature!
+
+If you wanted, you could now run Loki:
 
 ```bash
 ~/.loki-shell/bin/loki -config.file=ABSOLUTE_PATH_TO/.loki-shell/config/loki-local-config.yaml
@@ -172,7 +171,7 @@ Say yes to all the prompted questions.
 
 ### Step 3: Configure your shell
 
-**Note:** Promtail and logcli have binaries for several operating systems and architectures. In this example I’m using the fairly common linux-amd64, but please check [the Loki release page](https://github.com/grafana/loki/releases) for other binaries and adjust the following commands accordingly.
+**Note:** Promtail and logcli have binaries for several operating systems and architectures. In this example I’m using the fairly common linux-amd64, but please check [the Loki release page](https://github.com/grafana/loki/releases) for other architectures and adjust the following commands accordingly.
 
 ```bash
 cd ~/.loki-shell/bin

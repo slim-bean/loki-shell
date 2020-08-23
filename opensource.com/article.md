@@ -114,13 +114,42 @@ cd ~/.loki-shell/config
 curl -O -L "https://raw.githubusercontent.com/slim-bean/loki-shell/master/cfg/loki-local-config.yaml"
 ```
 
-There are a few paths which need to be set:
+There are a few paths which need to be set, all the FIXME's need to become absolute paths:
 
 ```bash
-sed -i 's/FIXME/$HOME/g' loki-local-config.yaml
+sed -i "s|FIXME|$HOME|g" loki-local-config.yaml
 ```
 
-Open this file in your favorite editor and replace all the `FIXME` 
+At this point you can run Loki!
+
+```bash
+~/.loki-shell/bin/loki -config.file=~/.loki-shell/config/loki-local-config.yaml
+```
+
+However if you want Loki to run in the background and enable it across reboots we can create a systemd service for it. 
+
+Now we will download a systemd service file:
+
+```bash
+curl -O -L "https://raw.githubusercontent.com/slim-bean/loki-shell/master/cfg/loki.service"
+```
+
+This time we need to update the path as well as the user who will run Loki
+
+```bash
+sed -i "s|FIXME|$HOME|g" loki.service
+sed -i "s|USER|$USER|g" loki.service
+```
+
+Enable the systemd service and start it
+
+```
+sudo cp loki.service /etc/systemd/system/loki.service
+sudo systemctl daemon-reload
+sudo systemctl enable loki
+sudo systemctl start loki
+```
+
 
 ### Step 2: Install fzf
 
@@ -325,6 +354,15 @@ Stop and remove Loki:
 
 ```
 docker rm -f loki-shell
+```
+
+or
+
+```
+sudo systemctl stop loki
+sudo systemctl disable loki
+sudo rm /etc/systemd/system/loki.service
+sudo systemctl daemon-reload
 ```
 
 Remove all the download files and data files:

@@ -1,0 +1,13 @@
+[Unit]
+Description=Loki Log Aggregator
+After=network.target
+
+[Service]
+Type=simple
+User=USER
+ExecStart=FIXME/.loki-shell/bin/loki -config.file FIXME/.loki-shell/config/loki-local-config.yaml
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

@@ -174,3 +174,50 @@ function _send_to_loki {
 ## Extras
 
 Running Loki remotely
+
+
+
+TO 
+
+Now you need to make a decision, Loki supports many backend stores I would suggest using a cloud storage option like s3.  It provides durability offsite for your command history as well as makes it very easy to move where you are running Loki without having to copy any data files.
+
+However if you don’t want to create an s3 bucket and you want to just get started quickly you can keep all the files on the local filesystem. It will still be possible to move to an s3 bucket later, directions [here](FIXME).
+
+Choose your adventure:
+
+
+#### Cloud
+
+```bash
+cd ~/.loki-shell/config
+curl -O -L "https://raw.githubusercontent.com/slim-bean/loki-shell/master/cfg/loki-docker-s3-config.yaml"
+```
+
+Open the file in your favorite editor and you will need these two lines with your bucket info:
+
+```bash
+s3: https://ACCESS_KEY_ID:SECRET_ACCESS_KEY@s3.wasabisys.com/BUCKET_NAME 
+region: REGION 
+```
+
+Save your changes and Run Loki!
+
+```bash
+docker run -d --restart=unless-stopped --name=loki-shell \
+--mount type=bind,source=$HOME/.loki-shell/config/loki-docker-s3-config.yaml,target=/etc/loki/local-config.yaml \
+--mount type=bind,source=$HOME/.loki-shell/data,target=/loki \
+-p 4100:4100 grafana/loki:1.6.0
+```
+
+Check the logs and you should see something like this:
+
+```bash
+docker logs loki-shell
+```
+
+```none
+level=info ts=2020-08-23T13:06:21.1927609Z caller=loki.go:210 msg="Loki started"
+level=info ts=2020-08-23T13:06:21.1929967Z caller=lifecycler.go:370 msg="auto-joining cluster after timeout" ring=ingester
+```
+
+**NOTE:** Putting the files in a remote store does increase the latency for queries, this will be most noticeable on the first query in a long period of time or after a Loki restart. However the Loki config has some aggressive cache settings enabled such that subsequent queries should only take a few milliseconds if Loki is running on the localhost.  See [performance notes](FIXME) for more information.

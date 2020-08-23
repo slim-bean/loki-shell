@@ -1,0 +1,56 @@
+auth_enabled: false
+
+server:
+  http_listen_port: 4100    # Normally Loki is on port 3100, 4100 was chosen here so you can run multiple Loki servers and leave this in the background for shell commands
+
+ingester:
+  lifecycler:
+    address: 127.0.0.1
+    ring:
+      kvstore:
+        store: inmemory
+      replication_factor: 1
+    final_sleep: 0s
+                           # I do not recommend setting either of the following settings less than 1h
+  chunk_idle_period: 1h    # These two settings determine how long Loki keeps logs in memory before persisting them to the store.
+  max_chunk_age: 1h        # This is a compromise between reducing risk of lost logs if Loki crashes and not writing too many small chunks which really hurts performance.
+
+  chunk_target_size: 1048576  # Try to build bigger chunks if there is sufficient data, although for logging shell commands we will never hit this.
+  chunk_retain_period: 30s
+  max_transfer_retries: 0
+
+schema_config:
+  configs:
+    - from: 2020-08-08
+      store: boltdb-shipper
+      object_store: aws     # Change this if you are using gcs or azure, leave for s3
+      schema: v11
+      index:
+        prefix: index_
+        period: 24h
+
+storage_config:
+  aws:
+    s3: https://ACCESS_KEY_ID:SECRET_ACCESS_KEY@s3.wasabisys.com/BUCKET_NAME #FIXME set the appropriate keys and bucket name
+    region: REGION # FIXME Set the correct region
+    s3forcepathstyle: true
+  boltdb_shipper:
+    active_index_directory: /loki/index
+    shared_store: aws   # Change this if you are using gcs or azure, leave for s3
+    cache_location: /loki/boltdb-cache
+    cache_ttl: 721h # This is 30days worth of hours, our history query is 30 days so keep all the index files local to improve performance.
+limits_config:
+  enforce_metric_name: false
+  reject_old_samples: true
+  reject_old_samples_max_age: 168h
+
+chunk_store_config:
+  max_look_back_period: 0s
+  chunk_cache_config:
+    enable_fifocache: true      # Enable an inmemory cache for chunks, this improves performance because chunks are small and we can cache them forever
+    fifocache:
+      max_size_bytes: 52428800  # Max cache of 50MB, adjust if desired.
+
+table_manager:
+  retention_deletes_enabled: false
+  retention_period: 0s

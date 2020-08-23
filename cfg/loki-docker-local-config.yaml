@@ -23,22 +23,20 @@ schema_config:
   configs:
     - from: 2020-08-08
       store: boltdb-shipper
-      object_store: aws     # Change this if you are using gcs or azure, leave for s3
+      object_store: filesystem
       schema: v11
       index:
         prefix: index_
         period: 24h
 
 storage_config:
-  aws:
-    s3: https://ACCESS_KEY_ID:SECRET_ACCESS_KEY@s3.wasabisys.com/BUCKET_NAME #FIXME set the appropriate keys and bucket name
-    region: REGION # FIXME Set the correct region
-    s3forcepathstyle: true
   boltdb_shipper:
     active_index_directory: /loki/index
-    shared_store: aws   # Change this if you are using gcs or azure, leave for s3
+    shared_store: filesystem
     cache_location: /loki/boltdb-cache
-    cache_ttl: 721h # This is 30days worth of hours, our history query is 30 days so keep all the index files local to improve performance.
+    cache_ttl: 24h # When using filesystem store, files are already local so there isn't a reason to really cache them very long, 24h is default
+  filesystem:
+    directory: /loki/chunks
 limits_config:
   enforce_metric_name: false
   reject_old_samples: true
@@ -47,7 +45,7 @@ limits_config:
 chunk_store_config:
   max_look_back_period: 0s
   chunk_cache_config:
-    enable_fifocache: true      # Enable an inmemory cache for chunks, this drastically improves performance because chunks are small and we can cache them forever
+    enable_fifocache: true      # Enable an inmemory cache for chunks, this improves performance because chunks are small and we can cache them forever
     fifocache:
       max_size_bytes: 52428800  # Max cache of 50MB, adjust if desired.
 

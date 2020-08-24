@@ -96,36 +96,3 @@ This _does_ result in double the data in the object store however Loki will hand
 Failures to send to loki via the promtail instances are sent to the system log via the `logger` command, search your system log for the tag `loki-shell-promtail`.
 
 Loki failures and issues should be visible in the loki log file.
-
-## Tweaking
-
-
-
-## Extras
-
-Running Loki remotely
-
-
-
-TO 
-
-Now you need to make a decision, Loki supports many backend stores I would suggest using a cloud storage option like s3.  It provides durability offsite for your command history as well as makes it very easy to move where you are running Loki without having to copy any data files.
-
-However if you don’t want to create an s3 bucket and you want to just get started quickly you can keep all the files on the local filesystem. It will still be possible to move to an s3 bucket later, directions [here](FIXME).
-
-Choose your adventure:
-
-
-
-
-Check the logs and you should see something like this:
-
-```bash
-docker logs loki-shell
-```
-
-```none
-level=info ts=2020-08-23T13:06:21.1927609Z caller=loki.go:210 msg="Loki started"
-level=info ts=2020-08-23T13:06:21.1929967Z caller=lifecycler.go:370 msg="auto-joining cluster after timeout" ring=ingester
-```
-

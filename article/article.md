@@ -63,6 +63,8 @@ cd ~/.loki-shell
 sudo chown 10001:10001 data/
  ```
 
+On macOS this doesn't have to be done.
+
 Next we need to download a config file
 
 ```bash
@@ -288,6 +290,8 @@ The alias at the end is optional but will make it easier to query Loki directly 
 Check out the [getting started guide for logcli](https://grafana.com/docs/loki/latest/getting-started/logcli/) to learn more about querying.
 
 Save your `.zshrc` file and reload it with `source ~/.zshrc` or restart your shell!
+
+On macOs the `stdbuf` utility doesn't exist. Homebrew has a version called `gstdbuf`. It can be installed using `brew install coreutils`. The function in the `.zshrc` has to be updated with the new name.
 
 ### Step 4: Try it out!
 

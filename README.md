@@ -1,192 +1,44 @@
-# loki-shell-history
+# loki-shell
 
-One of the first things I always do when setting up a new computer is `vi ~/.bashrc` and change the shell history settings.
+This project is all about how to use Loki to store your shell history!
 
-Adding a few zeros to the `HISTSIZE` and `HISTFILESIZE` variables as well as setting `HISTTIMEFORMAT`:
+This README picks up where this [article](article/article.md) left off, which covers getting started.
 
-```
-HISTSIZE=10000000
-HISTFILESIZE=20000000
-HISTTIMEFORMAT="%F %T "
-```
 
-The next thing I do is install fzf https://github.com/junegunn/fzf with key bindings so that `ctrl -r` shows my history with fzf.
+## Good stuff to know 
 
-I'm a very heavy user of searching my bash history when working from a terminal, and this combination works very well for me.
+When you hit `ctrl-r` the default configuration will query Loki for the last 30 days of logs for the host you are on and pass them to fzf, the line limit is 50,000 lines.
 
-With a few exceptions...
+If your shell history for this machine is longer than 50k lines you won't get all the results for 30 days, you will get the 50k most recent.
 
-* I often have many terminal windows open and very often they are closed in a way they don't persist the history.
-* I use separate VM's and machines a lot, it would be nice if I could centralize that history.
+If you want to query more than 30days use logcli via the `hist` command alias we setup, likewise if you want to query multiple hosts use the `hist` alias or Grafana.
 
-I've seen suggestions to solve the first problem by setting something like this in your `~/.bashrc` file:
+If you don't need 30 days of shell history every time you hit `ctrl-r` in the .xxxxrc file change `--since=720h` to something shorter and source the file or restart your shell.
 
-```
-export PROMPT_COMMAND="history -a; history -c; history -r; ${PROMPT_COMMAND}"
-```
+If you are using the hist alias or grafana you can get all your shell history with the label `{job="shell"}`, to get a specific host `{job="shell",host="host1"}`, it's possible to use a regex to match multiple hosts too `{job="shell",host=~"host1|host2"}`
 
-However this has one big drawback, it interferes with the operation of the up arrow when bringing up previous commands, you can remove the `-c` and `-r` flags but then you won't get updates from other shells.
+For a much more detailed list of query possibilities check out the [LogQL Guide](https://grafana.com/docs/loki/latest/logql/)
 
-This repo contains instructions on how I used Grafana Loki to solve both of these problems.
+## Performance notes
 
-## Some background on Loki
+Fastest performance will be using a filesystem and having Loki run locally, however this is probably the least durable.
 
-[Grafana Loki](https://github.com/grafana/loki) is a log aggregation application built to store both small and extremely large volumes of logs in an easy to operate way.
+I run Loki on a Raspberry Pi so I can connect to it from many machines, and the storage is in S3.  This combination is not the best for performance but there are optimizations in place to help with this.
 
-**Full Disclosure** I work on the Loki project so this is either a really clever use of Loki or it's one of those cases when you have a hammer, everything looks like a nail.
+In the Loki config we setup an in memory cache for chunks at 50MB, and we also set the ttl for index queries to 30 days.  
+What this means is that once Loki has fetched the data for any query subsequent calls will not need to hit the object store and will be processed very quickly.
 
-The good news is you don't have to trust me because it's very easy to try this yourself, so let's look at how to set things up.
+This does mean that after a restart of Loki or if you haven't queried it in a while there might be a longer pause if it has to fetch index or chunk files from the object store.
 
-For starters, Loki can run as a relatively compact single binary either directly on your computer, consuming under 100MB of RAM.
+In practice this is usually manageable because logcli batches the requests and streams them to fzf, so the most recent 1000 results are available very quickly for searching while batches are fetched in the background.
 
-For persistent storage you have a wide variety of options from the local filesystem to a number of object stores like S3, GCS, or Azure Blob. You can also use any of the S3 compatible services such as Wasabi (which I'm using), or something local like MinIO
+## Storage Options
 
-If it turns out you generate a lot of command history Loki can also be horizontally scaled to handle terabytes of logs a day or more :)
+You most likely will want to upgrade from the filesystem config to an object store in the cloud for better durability of your data and easier access.
 
-NOTE: Loki is built on the concept of only indexing a small amount of metadata around your logs (labels), and storing the content unindexed and highly compressed.
+These are essentialy the same instructions for running with docker but they use a different config file with an `s3` compatible store instead.
 
-If you are familiar with Prometheus, Loki uses the same label concept which is why it's like Prometheus but for logs.
-Keeping a small index is the secret to Loki's success, for this setup we will only be using a couple labels
-
-```nohighlight
-job
-host
-``` 
-
-the `job` label will be set to `shell` and the `host` label will be set to the `$HOSTNAME` of the computer.
-
-This allows us to query our shell command history for all our hosts:
-
-```nohighlight
-logcli --addr=http://localhost:4100 query '{job="shell"}'
-``` 
-
-or a single host or multiple hosts using regex:
-
-```nohighlight
-logcli --addr=http://localhost:4100 query '{job="shell", host="host1"}'
-logcli --addr=http://localhost:4100 query '{job="shell", host=~"host1|host2"}'
-``` 
-
-This is just a few examples, in fact there is a lot of querying you can do on your command history but we'll get to that at the end.
-
-If you find yourself experimenting more with Loki after this check out these blog posts for more information on how to use labels successfully within loki
-
-
-## Setting it up
-
-### Initial Housekeeping
-
-To start lets make a directory where we can store configs and our tooling:
-
-```bash
-cd ~
-mkdir .loki-shell
-cd .loki-shell/
-git clone https://github.com/slim-bean/loki-shell-history.git
-cp -r loki-shell-history/cfg/ .
-```
-
-The last command copies the config files out of the git repo and into `~/.loki-shell/cfg`.
-This is optional, if you want you could fork my repo and keep your configs in source control, just be mindful with access keys and public git repos.
-
-Other configs and settings in this guide will reference the config files in `~/.loki-shell/cfg`
-
-In the future you can `git pull` this repo to see if there are changes or improvements made to the config file.
-
-### Download
-
-```bash
-cd ~/.loki-shell
-mkdir bin
-cd bin
-wget
-wget
-wget
-```
-
-If you are going to run Loki in docker you can skip the last download.
-
-
-
-### fzf
-
-I have a fork of fzf in which I changed the history command to query Loki when `ctrl-r` is pressed, in the future I would like to come up with a better way to handle this part and eliminate the need for a fork.
-
-If you already have fzf installed it may be best to uninstall it and follow these steps, or you can try to find the `key-bindings.bash` file and replace it with the one from my fork in the `loki` branch.
-
-My apologies, I only updated the bash keybindings, if you are using a different shell you can probably make similar changes based on what I did in `key-bindings.bash`.
-
-#### Installing from git
-
-```bash
-cd ~
-git clone https://github.com/slim-bean/fzf.git ~/.fzf
-cd .fzf
-git checkout loki
-./install
-``` 
-
-
-### Setting up Loki
-
-download config example and configure:
-
-setup wasabi
-
-create a bucket
-
-no versioning, no logging
-
-create a user
-
-select `Programmatic (create API key)`
-
-download or save the credentials
-
-give the `WasabiFullAccess` permission
-
-setup config file
-
-#### Docker
-
-docker run
-
-#### Standalone
-
-systemd
-
-### Modify .bashrc
-
-There are 2 changes we need to make to `.bashrc` the first is to make sure every command gets sent to Loki.
-
-```shell
-# Send all bash commands to Loki with promtail
-function _send_to_loki {
-        (HISTTIMEFORMAT= builtin history 1 | sed 's/^ *\([0-9]*\)\** *//' | promtail -config.file=/home/ed/projects/loki/cmd/promtail/promtail-logging-config.yaml --stdin -server.disable=true -log.level=warn --client.external-labels=host=$HOSTNAME 1>&2 &)
-}
-[[ $PROMPT_COMMAND =~ _send_to_loki ]] || PROMPT_COMMAND="_send_to_loki;${PROMPT_COMMAND:-:}"
-
-# Put Promtail/Loki/Logcli binaries on the path
-[[ $PATH =~ .loki-shell ]] || PATH="$HOME/.loki-shell/bin:${PATH:-:}"
-```
-
-## Extras
-
-Running Loki remotely
-
-
-
-TO 
-
-Now you need to make a decision, Loki supports many backend stores I would suggest using a cloud storage option like s3.  It provides durability offsite for your command history as well as makes it very easy to move where you are running Loki without having to copy any data files.
-
-However if you don’t want to create an s3 bucket and you want to just get started quickly you can keep all the files on the local filesystem. It will still be possible to move to an s3 bucket later, directions [here](FIXME).
-
-Choose your adventure:
-
-
-#### Cloud
+I'm using [Wasabi](https://wasabi.com/) because it was cheaper and something new to try, I don't know how good it is yet but so far it's been no problems.
 
 ```bash
 cd ~/.loki-shell/config
@@ -209,6 +61,62 @@ docker run -d --restart=unless-stopped --name=loki-shell \
 -p 4100:4100 grafana/loki:1.6.0
 ```
 
+Migrating existing data is possible but I need to make available a tool to do this which is currently a bit hacked together, more to come here.
+
+## Durability
+
+Loki does not have a Write Ahead Log for in memory data yet, it's coming but it's not here yet. 
+What this means is: if you shutdown or kill log without sending a SIGTERM first and letting it shutdown on it's own, **YOU WILL LOSE UP TO 1H OF SHELL COMMANDS**
+
+Always safely shutdown the process.
+
+Or you can `curl http://localhost:4100/flush` to manually force a flush of all streams in memory before shutting down.
+
+If you want an even more durable setup consider running two Loki instances against the same s3 bucket and configuring promtail to send to both:
+
+```yaml
+clients:
+  - url: http://localhost:4100/loki/api/v1/push   # Make sure this port matches your Loki http port
+    backoff_config:
+      max_period: 5s    # Keep retries short such that terminal is still usable if Loki is unavailable
+      max_retries: 3
+  - url: https://some.other.host:4100/loki/api/v1/push
+    backoff_config:
+      max_period: 5s
+      max_retries: 3
+```
+
+Please note the short retry times and period, this is to keep the promtail processes running for a short time in the background, these can be increased if that's not a concern for you.
+
+This _does_ result in double the data in the object store however Loki will handle and de-duplicate this data at query time.  All of this increases processing time, storage, costs etc but is how I run my setup.
+
+## Troubleshooting
+
+Failures to send to loki via the promtail instances are sent to the system log via the `logger` command, search your system log for the tag `loki-shell-promtail`.
+
+Loki failures and issues should be visible in the loki log file.
+
+## Tweaking
+
+
+
+## Extras
+
+Running Loki remotely
+
+
+
+TO 
+
+Now you need to make a decision, Loki supports many backend stores I would suggest using a cloud storage option like s3.  It provides durability offsite for your command history as well as makes it very easy to move where you are running Loki without having to copy any data files.
+
+However if you don’t want to create an s3 bucket and you want to just get started quickly you can keep all the files on the local filesystem. It will still be possible to move to an s3 bucket later, directions [here](FIXME).
+
+Choose your adventure:
+
+
+
+
 Check the logs and you should see something like this:
 
 ```bash
@@ -220,4 +128,3 @@ level=info ts=2020-08-23T13:06:21.1927609Z caller=loki.go:210 msg="Loki started"
 level=info ts=2020-08-23T13:06:21.1929967Z caller=lifecycler.go:370 msg="auto-joining cluster after timeout" ring=ingester
 ```
 
-**NOTE:** Putting the files in a remote store does increase the latency for queries, this will be most noticeable on the first query in a long period of time or after a Loki restart. However the Loki config has some aggressive cache settings enabled such that subsequent queries should only take a few milliseconds if Loki is running on the localhost.  See [performance notes](FIXME) for more information.

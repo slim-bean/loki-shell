@@ -227,7 +227,7 @@ function _send_to_loki {
     --stdin -server.disable=true -log.level=error \
     --client.external-labels=host=$HOSTNAME 2>&1 | logger -t loki-shell-promtail &)
 }
-[[ $PROMPT_COMMAND =~ _send_to_loki ]] || PROMPT_COMMAND="_send_to_loki;${PROMPT_COMMAND:-:}"
+[[ $PROMPT_COMMAND =~ _send_to_loki ]] || PROMPT_COMMAND="_send_to_loki;${PROMPT_COMMAND:-}"
 
 alias hist="$HOME/.loki-shell/bin/logcli --addr=$LOKI_URL"
 ```
@@ -301,7 +301,7 @@ Also notice that when switching between terminals and entering commands they are
 
 Use `ctrl-r` multiple times to toggle between sorting by time and relevance.
 
-**Note:** The configuration applied here will only show the query history for the current host even if you are sending shell data from multiple hosts to Loki, I think by default this makes the most sense.  There is a lot you can tweak here if you would like this behavior to change, see the [configuration tips](FIXME) to learn more.
+**Note:** The configuration applied here will only show the query history for the current host even if you are sending shell data from multiple hosts to Loki, I think by default this makes the most sense.  There is a lot you can tweak here if you would like this behavior to change, see the [repo](https://github.com/slim-bean/loki-shell) to learn more.
 
 ## Extra Credit
 
@@ -331,7 +331,7 @@ For a better understanding of Loki's query language [check out this LogQL guide]
 
 ## Troubleshooting
 
- 
+A troubleshooting guide is available on the [repo](https://github.com/slim-bean/loki-shell)
 
 ## Improvements
 

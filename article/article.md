@@ -48,7 +48,7 @@ mkdir .loki-shell && cd .loki-shell && mkdir data bin config
 
 ### Step 1: Set up Loki.
 
-At the time of this article 1.6.0 was the most recent Loki version but check [the Loki release page](https://github.com/grafana/loki/releases) to see if there is a newer version available!
+At the time of this article 1.6.1 was the most recent Loki version but check [the Loki release page](https://github.com/grafana/loki/releases) to see if there is a newer version available!
 
 You can choose between running Loki in Docker or the Binary direcctly. Docker is easier and quicker, but certainly isn't necessary, if you prefer you can run Loki as easily as `./loki -config.file=loki-local-config.yaml`
 
@@ -80,7 +80,7 @@ Now that Loki has a place to store files and a config file we can run it!
 docker run -d --restart=unless-stopped --name=loki-shell \
 --mount type=bind,source=$HOME/.loki-shell/config/loki-docker-local-config.yaml,target=/etc/loki/local-config.yaml \
 --mount type=bind,source=$HOME/.loki-shell/data,target=/loki \
--p 4100:4100 grafana/loki:1.6.0
+-p 4100:4100 grafana/loki:1.6.1
 ```
 
 Check the logs and you should see something like this:
@@ -100,7 +100,7 @@ If you don't have or don't want to use Docker you can run Loki as a binary! In t
 
 ```bash
 cd ~/.loki-shell/bin
-curl -O -L "https://github.com/grafana/loki/releases/download/v1.6.0/loki-linux-amd64.zip"
+curl -O -L "https://github.com/grafana/loki/releases/download/v1.6.1/loki-linux-amd64.zip"
 unzip loki-linux-amd64.zip && mv loki-linux-amd64 loki
 ```
 
@@ -175,9 +175,9 @@ Say yes to all the prompted questions.
 
 ```bash
 cd ~/.loki-shell/bin
-curl -O -L "https://github.com/grafana/loki/releases/download/v1.6.0/promtail-linux-amd64.zip"
+curl -O -L "https://github.com/grafana/loki/releases/download/v1.6.1/promtail-linux-amd64.zip"
 unzip promtail-linux-amd64.zip && mv promtail-linux-amd64 promtail
-curl -O -L "https://github.com/grafana/loki/releases/download/v1.6.0/logcli-linux-amd64.zip"
+curl -O -L "https://github.com/grafana/loki/releases/download/v1.6.1/logcli-linux-amd64.zip"
 unzip logcli-linux-amd64.zip && mv logcli-linux-amd64 logcli
 ```
 

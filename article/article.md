@@ -76,9 +76,9 @@ Now that Loki has a place to store files and a config file we can run it!
 
 ```console
 $ docker run -d --restart=unless-stopped --name=loki-shell \
---mount type=bind,source=$HOME/.loki-shell/config/loki-docker-local-config.yaml,target=/etc/loki/local-config.yaml \
---mount type=bind,source=$HOME/.loki-shell/data,target=/loki \
--p 4100:4100 grafana/loki:1.6.0
+> --mount type=bind,source=$HOME/.loki-shell/config/loki-docker-local-config.yaml,target=/etc/loki/local-config.yaml \
+> --mount type=bind,source=$HOME/.loki-shell/data,target=/loki \
+> -p 4100:4100 grafana/loki:1.6.0
 ```
 
 Check the logs and you should see something like this:
@@ -96,7 +96,7 @@ If you don't have or don't want to use Docker you can run Loki as a binary! In t
 ```console
 $ cd ~/.loki-shell/bin
 $ curl -O -L "https://github.com/grafana/loki/releases/download/v1.6.0/loki-linux-amd64.zip"
-unzip loki-linux-amd64.zip && mv loki-linux-amd64 loki
+$ unzip loki-linux-amd64.zip && mv loki-linux-amd64 loki
 ```
 
 Next download a configuration file:

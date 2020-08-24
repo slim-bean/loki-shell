@@ -41,9 +41,9 @@ The config files and some additional instructions and information to take this p
  
 Let's get started! first we need to make a directory to store config files, binaries and some cached data:
 
-```bash
-cd ~
-mkdir .loki-shell && cd .loki-shell && mkdir data bin config
+```console
+$ cd ~
+$ mkdir .loki-shell && cd .loki-shell && mkdir data bin config
 ```
 
 ### Step 1: Set up Loki.
@@ -58,24 +58,24 @@ If you have Docker running, using it to run Loki simplifies some of the operatio
 
 The Loki process in the Docker image runs as user 10001:10001 so to be able to write to the data directory we created we need to change the owner:
 
-```bash
-cd ~/.loki-shell
-sudo chown 10001:10001 data/
+```console
+$ cd ~/.loki-shell
+$ sudo chown 10001:10001 data/
  ```
 
 Next we need to download a config file
 
-```bash
-cd ~/.loki-shell/config
-curl -O -L "https://raw.githubusercontent.com/slim-bean/loki-shell/master/cfg/loki-docker-local-config.yaml"
+```console
+$ cd ~/.loki-shell/config
+$ curl -O -L "https://raw.githubusercontent.com/slim-bean/loki-shell/master/cfg/loki-docker-local-config.yaml"
 ```
 
 The defaults in this config file were tuned for this application with some comments explaining why, feel free to check it out.
 
 Now that Loki has a place to store files and a config file we can run it!
 
-```bash
-docker run -d --restart=unless-stopped --name=loki-shell \
+```console
+$ docker run -d --restart=unless-stopped --name=loki-shell \
 --mount type=bind,source=$HOME/.loki-shell/config/loki-docker-local-config.yaml,target=/etc/loki/local-config.yaml \
 --mount type=bind,source=$HOME/.loki-shell/data,target=/loki \
 -p 4100:4100 grafana/loki:1.6.0
@@ -83,11 +83,8 @@ docker run -d --restart=unless-stopped --name=loki-shell \
 
 Check the logs and you should see something like this:
 
-```bash
-docker logs loki-shell
-```
-
-```bash
+```console
+$ docker logs loki-shell
 level=info ts=2020-08-23T13:06:21.1927609Z caller=loki.go:210 msg="Loki started"
 level=info ts=2020-08-23T13:06:21.1929967Z caller=lifecycler.go:370 msg="auto-joining cluster after timeout" ring=ingester
 ```
@@ -96,55 +93,55 @@ level=info ts=2020-08-23T13:06:21.1929967Z caller=lifecycler.go:370 msg="auto-jo
 
 If you don't have or don't want to use Docker you can run Loki as a binary! In this example I’m using the fairly common linux-amd64, but please check [the Loki release page](https://github.com/grafana/loki/releases) for other architectures and adjust the following commands accordingly.
 
-```bash
-cd ~/.loki-shell/bin
-curl -O -L "https://github.com/grafana/loki/releases/download/v1.6.0/loki-linux-amd64.zip"
+```console
+$ cd ~/.loki-shell/bin
+$ curl -O -L "https://github.com/grafana/loki/releases/download/v1.6.0/loki-linux-amd64.zip"
 unzip loki-linux-amd64.zip && mv loki-linux-amd64 loki
 ```
 
 Next download a configuration file:
 
-```bash
-cd ~/.loki-shell/config
-curl -O -L "https://raw.githubusercontent.com/slim-bean/loki-shell/master/cfg/loki-local-config.yaml"
+```console
+$ cd ~/.loki-shell/config
+$ curl -O -L "https://raw.githubusercontent.com/slim-bean/loki-shell/master/cfg/loki-local-config.yaml"
 ```
 
 There are a few paths which need to be set, all the FIXME's need to become absolute paths:
 
-```bash
-sed -i "s|FIXME|$HOME|g" loki-local-config.yaml
+```console
+$ sed -i "s|FIXME|$HOME|g" loki-local-config.yaml
 ```
 
 TIL you can use any character in sed it doesn't have to be a `/` and if you want to substitute and env variable that has paths in it this is a convenient feature!
 
 If you wanted, you could now run Loki:
 
-```bash
-~/.loki-shell/bin/loki -config.file=ABSOLUTE_PATH_TO/.loki-shell/config/loki-local-config.yaml
+```console
+$ ~/.loki-shell/bin/loki -config.file=ABSOLUTE_PATH_TO/.loki-shell/config/loki-local-config.yaml
 ```
 
 However if you want Loki to run in the background and enable it across reboots we can create a systemd service for it. 
 
 Now we will download a systemd service file:
 
-```bash
-curl -O -L "https://raw.githubusercontent.com/slim-bean/loki-shell/master/cfg/loki.service"
+```console
+$ curl -O -L "https://raw.githubusercontent.com/slim-bean/loki-shell/master/cfg/loki.service"
 ```
 
 This time we need to update the path as well as the user who will run Loki
 
-```bash
-sed -i "s|FIXME|$HOME|g" loki.service
-sed -i "s|USER|$USER|g" loki.service
+```console
+$ sed -i "s|FIXME|$HOME|g" loki.service
+$ sed -i "s|USER|$USER|g" loki.service
 ```
 
 Enable the systemd service and start it
 
-```
-sudo cp loki.service /etc/systemd/system/loki.service
-sudo systemctl daemon-reload
-sudo systemctl enable loki
-sudo systemctl start loki
+```console
+$ sudo cp loki.service /etc/systemd/system/loki.service
+$ sudo systemctl daemon-reload
+$ sudo systemctl enable loki
+$ sudo systemctl start loki
 ```
 
 
@@ -152,17 +149,17 @@ sudo systemctl start loki
 
 There are several ways to install fzf but I prefer [the git instructions](https://github.com/junegunn/fzf#using-git) which are:
  
-```bash 
-git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
-~/.fzf/install
+```console 
+$ git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
+$ ~/.fzf/install
 ```
 
 the git install method always gets you the most recent version and also makes updates as simple as
 
-```bash
-cd ~/.fzf
-git pull
-./install
+```console
+$ cd ~/.fzf
+$ git pull
+$ ./install
 ```
 
 Say yes to all the prompted questions.
@@ -171,19 +168,19 @@ Say yes to all the prompted questions.
 
 **Note:** Promtail and logcli have binaries for several operating systems and architectures. In this example I’m using the fairly common linux-amd64, but please check [the Loki release page](https://github.com/grafana/loki/releases) for other architectures and adjust the following commands accordingly.
 
-```bash
-cd ~/.loki-shell/bin
-curl -O -L "https://github.com/grafana/loki/releases/download/v1.6.0/promtail-linux-amd64.zip"
-unzip promtail-linux-amd64.zip && mv promtail-linux-amd64 promtail
-curl -O -L "https://github.com/grafana/loki/releases/download/v1.6.0/logcli-linux-amd64.zip"
-unzip logcli-linux-amd64.zip && mv logcli-linux-amd64 logcli
+```console
+$ cd ~/.loki-shell/bin
+$ curl -O -L "https://github.com/grafana/loki/releases/download/v1.6.0/promtail-linux-amd64.zip"
+$ unzip promtail-linux-amd64.zip && mv promtail-linux-amd64 promtail
+$ curl -O -L "https://github.com/grafana/loki/releases/download/v1.6.0/logcli-linux-amd64.zip"
+$ unzip logcli-linux-amd64.zip && mv logcli-linux-amd64 logcli
 ```
 
 We also need a promtail config file:
 
-```bash
-cd ~/.loki-shell/config
-curl -O -L "https://raw.githubusercontent.com/slim-bean/loki-shell/master/cfg/promtail-logging-config.yaml"
+```console
+$ cd ~/.loki-shell/config
+$ curl -O -L "https://raw.githubusercontent.com/slim-bean/loki-shell/master/cfg/promtail-logging-config.yaml"
 ```
 
 #### Bash
@@ -305,8 +302,8 @@ Use `ctrl-r` multiple times to toggle between sorting by time and relevance.
 
 Install Grafana and play around with your shell history.
 
-```bash
-docker run -d -p 3000:3000 --name=grafana grafana/grafana
+```console
+$ docker run -d -p 3000:3000 --name=grafana grafana/grafana
 ```
 
 Open up a web browser at `http://localhost:3000` login using the default admin/admin user and password.
@@ -349,30 +346,30 @@ Restart your shell
 
 Stop and remove Loki:
 
-```
-docker rm -f loki-shell
+```console
+$ docker rm -f loki-shell
 ```
 
 or
 
-```
-sudo systemctl stop loki
-sudo systemctl disable loki
-sudo rm /etc/systemd/system/loki.service
-sudo systemctl daemon-reload
+```console
+$ sudo systemctl stop loki
+$ sudo systemctl disable loki
+$ sudo rm /etc/systemd/system/loki.service
+$ sudo systemctl daemon-reload
 ```
 
 Remove all the download files and data files:
 
-```
-sudo rm -rf ~/.loki-shell
+```console
+$ sudo rm -rf ~/.loki-shell
 ```
 
 Uninstall fzf (optional, you can still keep and use fzf if you like it)
 
-```
-~/.fzf/uninstall
-rm -rf ~/.fzf
+```console
+$ ~/.fzf/uninstall
+$ rm -rf ~/.fzf
 ```
 
 

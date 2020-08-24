@@ -86,7 +86,8 @@ clients:
       max_retries: 3
 ```
 
-Please note the short retry times and period, this is to keep the promtail processes running for a short time in the background, these can be increased if that's not a concern for you.
+Please note the short retry times and period, this is to keep the promtail processes running for a short time in the background. If your network or Loki instances are down promtail will give up rather quickly, 15s at most, before abandoning your shell commands. 
+You can increase these timeouts just be aware if a remote endpoint is slow or unavailable the promtail process will stay running in the background trying to send logs until it times out, you could end up with a lot of them if you keep entering commands.
 
 This _does_ result in double the data in the object store however Loki will handle and de-duplicate this data at query time.  All of this increases processing time, storage, costs etc but is how I run my setup.
 

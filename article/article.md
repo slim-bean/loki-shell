@@ -50,7 +50,7 @@ mkdir .loki-shell && cd .loki-shell && mkdir data bin config
 
 At the time of this article 1.6.0 was the most recent Loki version but check [the Loki release page](https://github.com/grafana/loki/releases) to see if there is a newer version available!
 
-You can choose between running Loki in Docker or the Binary direcctly. Docker is easier and quicker, but certainly isn't necessary, if you prefer you can run Loki as easily as `./loki -config.file=loki-local-config.yaml`
+You can choose between running Loki in Docker or the Binary directly. Docker is easier and quicker, but certainly isn't necessary, if you prefer you can run Loki as easily as `./loki -config.file=loki-local-config.yaml`
 
 #### Docker
 

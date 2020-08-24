@@ -17,11 +17,9 @@ To this:
 fzf has significantly improved my quality of life, but there are still some missing pieces around my shell history:
 
 * Losing shell history when terminals close abruptly, computers crash, computers die, whole disk encryption keys are forgotten...
-* Access to my shell history from all my computers on all my computers. 
+* Access to my shell history _from_ all my computers _on_ all my computers. 
 
 I think of my shell history as documentation, it's an important story I don't want to lose. Combining Loki with my shell history will help solve these problems and more!
-
-<insert gif here>
 
 ## Background
 

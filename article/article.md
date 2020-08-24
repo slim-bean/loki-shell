@@ -39,11 +39,11 @@ The best part? All of this functionality is available for anyone to use, for fre
 
 The config files and some additional instructions and information to take this project even further can be found at: https://github.com/slim-bean/loki-shell
  
-Let's get started! first we need to make a directory to store config files, binaries and some cached data:
+Let's get started! First we need to make a directory to store config files, binaries and some cached data:
 
 ```bash
 cd ~
-mkdir .loki-shell && cd .loki-shell && mkdir data bin config
+mkdir -p .loki-shell/{data,bin,config}
 ```
 
 ### Step 1: Set up Loki.

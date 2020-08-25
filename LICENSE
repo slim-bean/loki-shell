@@ -186,7 +186,13 @@
       same "printed page" as the copyright notice for easier
       identification within third-party archives.
 
-   Copyright [yyyy] [name of copyright owner]
+   Copyright 2020 slim-bean
+
+   Copyright 2013-2020 Junegunn Choi install
+
+   This project is licensed under the Apache License, Version 2.0 with the
+   exception of `index` file which is licesned under the MIT license.
+
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.

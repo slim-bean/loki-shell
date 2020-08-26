@@ -1,6 +1,6 @@
 
 clients:
-  - url: http://localhost:4100/loki/api/v1/push   # Make sure this port matches your Loki http port
+  - url: HOST/loki/api/v1/push   # Make sure this port matches your Loki http port
     backoff_config:
       max_period: 5s    # Keep retries short such that terminal is still usable if Loki is unavailable
       max_retries: 3

@@ -291,8 +291,10 @@ if [ $install_loki -eq 1 ]; then
   ask "[y] to run Loki in Docker, [n] to run Loki as a binary"
   docker=$?
   if [ $docker -eq 1 ]; then
-    if [ -x "$loki_shell_base"/config/loki-docker-config.yaml ]; then
-      prompt "Existing config file found at $loki_shell_base/.loki-shell/config/loki-docker-config.yaml\nFile will not be modified\n"
+    if [ -f "$loki_shell_base"/config/loki-docker-config.yaml ]; then
+      echo
+      echo "Existing config file found at $loki_shell_base/.loki-shell/config/loki-docker-config.yaml"
+      prompt "File will not be modified"
     else
       cp "$loki_shell_base"/cfg-template/loki-docker-local-config.yaml "$loki_shell_base"/config/loki-docker-config.yaml
     fi
@@ -306,8 +308,10 @@ if [ $install_loki -eq 1 ]; then
       echo "loki-shell docker image already running at correct version"
     fi
   else
-    if [ -x "$loki_shell_base"/config/loki-binary-confg.yaml ]; then
-      prompt "Existing config file found at $loki_shell_base/.loki-shell/config/loki-binary-config.yaml\nFile will not be modified\n"
+    if [ -f "$loki_shell_base"/config/loki-binary-config.yaml ]; then
+      echo
+      echo "Existing config file found at $loki_shell_base/.loki-shell/config/loki-binary-config.yaml"
+      prompt "File will not be modified"
     else
       cp "$loki_shell_base"/cfg-template/loki-local-config.yaml "$loki_shell_base"/config/loki-binary-config.yaml
       sed -i "s|FIXME|$loki_shell_base|g" "$loki_shell_base"/config/loki-binary-config.yaml
@@ -354,8 +358,9 @@ if [ $update_config -eq 2 ]; then
   default_host="http://localhost:4100"
   echo
   loki_host=$(prompt_string "Enter the URL for your Loki server or press enter for default" "$default_host")
-  if [ -x "$loki_shell_base"/config/promtail-logging-config.yaml ]; then
-    prompt "Existing promtail config file found at $loki_shell_base/.loki-shell/config/promtail-logging-config.yaml\nFile will not be modified\n"
+  if [ -f "$loki_shell_base"/config/promtail-logging-config.yaml ]; then
+    echo "Existing promtail config file found at $loki_shell_base/.loki-shell/config/promtail-logging-config.yaml"
+    prompt "File will not be modified"
   else
     cp "$loki_shell_base"/cfg-template/promtail-logging-config.yaml "$loki_shell_base"/config/promtail-logging-config.yaml
     sed -i "s|HOST|$loki_host|g" "$loki_shell_base"/config/promtail-logging-config.yaml

@@ -337,7 +337,7 @@ if [ $install_loki -eq 1 ]; then
       ask "[y] to run these commands with sudo [n] to print out the commands and you can run them yourself."
       run_sudo_cmds=$?
       if [ $run_sudo_cmds -eq 1 ]; then
-        sudo "$loki_shell_base"/cp $loki_shell_base/config/loki-shell.service /etc/systemd/system/loki-shell.service
+        sudo cp $loki_shell_base/config/loki-shell.service /etc/systemd/system/loki-shell.service
         sudo systemctl daemon-reload
         sudo systemctl enable loki
         sudo systemctl start loki

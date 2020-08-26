@@ -13,9 +13,9 @@ docker rm -f loki-shell
 
 or
 
-sudo systemctl stop loki
-sudo systemctl disable loki
-sudo rm /etc/systemd/system/loki.service
+sudo systemctl stop loki-shell
+sudo systemctl disable loki-shell
+sudo rm /etc/systemd/system/loki-shell.service
 sudo systemctl daemon-reload
 
 

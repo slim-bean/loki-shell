@@ -91,6 +91,11 @@ cd "$(dirname "${BASH_SOURCE[0]}")"
 loki_shell_base=$(pwd)
 loki_shell_base_esc=$(printf %q "$loki_shell_base")
 
+# make some directories
+mkdir "$loki_shell_base"/data
+mkdir "$loki_shell_base"/config
+mkdir "$loki_shell_base"/bin
+
 ask() {
   while true; do
     read -p "$1 ([y]/n) " -r

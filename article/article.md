@@ -46,111 +46,7 @@ cd ~
 mkdir .loki-shell && cd .loki-shell && mkdir data bin config
 ```
 
-### Step 1: Set up Loki.
-
-At the time of this article 1.6.1 was the most recent Loki version but check [the Loki release page](https://github.com/grafana/loki/releases) to see if there is a newer version available!
-
-You can choose between running Loki in Docker or the Binary direcctly. Docker is easier and quicker, but certainly isn't necessary, if you prefer you can run Loki as easily as `./loki -config.file=loki-local-config.yaml`
-
-#### Docker
-
-If you have Docker running, using it to run Loki simplifies some of the operational steps as Docker can handle automatic start/restart and makes changing versions simple.
-
-The Loki process in the Docker image runs as user 10001:10001 so to be able to write to the data directory we created we need to change the owner:
-
-```bash
-cd ~/.loki-shell
-sudo chown 10001:10001 data/
- ```
-
-On macOS this doesn't have to be done.
-
-Next we need to download a config file
-
-```bash
-cd ~/.loki-shell/config
-curl -O -L "https://raw.githubusercontent.com/slim-bean/loki-shell/master/cfg-template/loki-docker-local-config.yaml"
-```
-
-The defaults in this config file were tuned for this application with some comments explaining why, feel free to check it out.
-
-Now that Loki has a place to store files and a config file we can run it!
-
-```bash
-docker run -d --restart=unless-stopped --name=loki-shell \
---mount type=bind,source=$HOME/.loki-shell/config/loki-docker-local-config.yaml,target=/etc/loki/local-config.yaml \
---mount type=bind,source=$HOME/.loki-shell/data,target=/loki \
--p 4100:4100 grafana/loki:1.6.1
-```
-
-Check the logs and you should see something like this:
-
-```bash
-docker logs loki-shell
-```
-
-```bash
-level=info ts=2020-08-23T13:06:21.1927609Z caller=loki.go:210 msg="Loki started"
-level=info ts=2020-08-23T13:06:21.1929967Z caller=lifecycler.go:370 msg="auto-joining cluster after timeout" ring=ingester
-```
-
-#### Binary
-
-If you don't have or don't want to use Docker you can run Loki as a binary! In this example I’m using the fairly common linux-amd64, but please check [the Loki release page](https://github.com/grafana/loki/releases) for other architectures and adjust the following commands accordingly.
-
-```bash
-cd ~/.loki-shell/bin
-curl -O -L "https://github.com/grafana/loki/releases/download/v1.6.1/loki-linux-amd64.zip"
-unzip loki-linux-amd64.zip && mv loki-linux-amd64 loki
-```
-
-Next download a configuration file:
-
-```bash
-cd ~/.loki-shell/config
-curl -O -L "https://raw.githubusercontent.com/slim-bean/loki-shell/master/cfg-template/loki-local-config.yaml"
-```
-
-There are a few paths which need to be set, all the FIXME's need to become absolute paths:
-
-```bash
-sed -i "s|FIXME|$HOME|g" loki-local-config.yaml
-```
-
-TIL you can use any character in sed it doesn't have to be a `/` and if you want to substitute and env variable that has paths in it this is a convenient feature!
-
-If you wanted, you could now run Loki:
-
-```bash
-~/.loki-shell/bin/loki -config.file=ABSOLUTE_PATH_TO/.loki-shell/config/loki-local-config.yaml
-```
-
-However if you want Loki to run in the background and enable it across reboots we can create a systemd service for it. 
-
-Now we will download a systemd service file:
-
-```bash
-curl -O -L "https://raw.githubusercontent.com/slim-bean/loki-shell/master/cfg-template/loki.service"
-```
-
-This time we need to update the path as well as the user who will run Loki
-
-```bash
-sed -i "s|FIXME|$HOME|g" loki.service
-sed -i "s|USER|$USER|g" loki.service
-```
-
-Enable the systemd service and start it
-
-```
-sudo cp loki.service /etc/systemd/system/loki.service
-sudo systemctl daemon-reload
-sudo systemctl enable loki
-sudo systemctl start loki
-```
-
-
-### Step 2: Install fzf
+### Step 1: Install fzf
 
 There are several ways to install fzf but I prefer [the git instructions](https://github.com/junegunn/fzf#using-git) which are:
  
@@ -169,129 +65,102 @@ git pull
 
 Say yes to all the prompted questions.
 
-### Step 3: Configure your shell
 
-**Note:** Promtail and logcli have binaries for several operating systems and architectures. In this example I’m using the fairly common linux-amd64, but please check [the Loki release page](https://github.com/grafana/loki/releases) for other architectures and adjust the following commands accordingly.
+### Step 2: Install loki-shell
 
-```bash
-cd ~/.loki-shell/bin
-curl -O -L "https://github.com/grafana/loki/releases/download/v1.6.1/promtail-linux-amd64.zip"
-unzip promtail-linux-amd64.zip && mv promtail-linux-amd64 promtail
-curl -O -L "https://github.com/grafana/loki/releases/download/v1.6.1/logcli-linux-amd64.zip"
-unzip logcli-linux-amd64.zip && mv logcli-linux-amd64 logcli
-```
-
-We also need a promtail config file:
+I wrote a bash script to simplify the setup process so following exactly how fzf installs, 
+this is how you can install Loki as well as configure your shells to communicate your history to and from it.
 
 ```bash
-cd ~/.loki-shell/config
-curl -O -L "https://raw.githubusercontent.com/slim-bean/loki-shell/master/cfg-template/promtail-logging-config.yaml"
+git clone --depth 1 https://github.com/slim-bean/loki-shell.git ~/.loki-shell
+~/.loki-shell/install
 ```
 
-#### Bash
+The first thing the script is going to do is create the `~/.loki-shell` directory where all files will be kept (including Loki data)
 
-Open `~/.bashrc` in your favorite editor
+Next it will download binaries for Promtail, Logcli, and Loki
 
-Find this line that fzf installed:
+Then you will get the first question:
 
 ```bash
-[ -f ~/.fzf.bash ] && source ~/.fzf.bash
+Do you want to install Loki? ([y]/n)
 ```
 
-Immediately after this we are going to overload the function fzf uses for showing the history as well as use PROMPT_COMMAND to add a function for intercepting commands to send to Loki:
+If you have a centralized Loki running already for loki-shell you could answer `n` here, however we want to answer `y` or press enter.
+
+There are two options available for running Loki locally, as a docker image (recommended) or as the single binary (with support for adding a systemd service).
+
+I recommend using Docker if it's available as I think it simplifies operations a bit, but both work just fine!
+
+#### Docker
 
 ```bash
-[ -f ~/.fzf.bash ] && source ~/.fzf.bash
-
-# NOTE when changing the Loki URL, also remember to change the promtail config: ~/.loki-shell/config/promtail-logging-config.yaml
-export LOKI_URL="http://localhost:4100"
-
-__fzf_history__() {
-  local output
-  output=$(
-    $HOME/.loki-shell/bin/logcli query "{job=\"shell\", host=\"$HOSTNAME\"}" --addr=$LOKI_URL --limit=50000 --batch=1000 --since=720h -o raw --quiet | stdbuf -o0 awk '!seen[$0]++' |
-      FZF_DEFAULT_OPTS="--height ${FZF_TMUX_HEIGHT:-40%} $FZF_DEFAULT_OPTS -n2..,.. --tiebreak=index --bind=ctrl-r:toggle-sort $FZF_CTRL_R_OPTS +m " $(__fzfcmd) --query "$READLINE_LINE" 
-      ) || return
-  READLINE_LINE=${output#*$'\t'}
-  if [ -z "$READLINE_POINT" ]; then
-    echo "$READLINE_LINE"
-  else
-    READLINE_POINT=0x7fffffff
-  fi
-}
-
-function _send_to_loki {
-	(HISTTIMEFORMAT= builtin history 1 | sed 's/^ *\([0-9]*\)\** *//' | 
-    $HOME/.loki-shell/bin/promtail \
-    -config.file=$HOME/.loki-shell/config/promtail-logging-config.yaml \
-    --stdin -server.disable=true -log.level=error \
-    --client.external-labels=host=$HOSTNAME 2>&1 | logger -t loki-shell-promtail &)
-}
-[[ $PROMPT_COMMAND =~ _send_to_loki ]] || PROMPT_COMMAND="_send_to_loki;${PROMPT_COMMAND:-}"
-
-alias hist="$HOME/.loki-shell/bin/logcli --addr=$LOKI_URL"
+[y] to run Loki in Docker, [n] to run Loki as a binary ([y]/n) y
+Error: No such object: loki-shell
+Error response from daemon: No such container: loki-shell
+Error: No such container: loki-shell
+54843ff3392f198f5cac51a6a5071036f67842bbc23452de8c3efa392c0c2e1e
 ```
 
-The alias at the end is optional but will make it easier to query Loki directly for your shell history.
+If this is the first time running the install you can disregard the Error messages, this script will stop and replace a running Loki container if the version does not match allowing you to re-run this script to upgrade Loki.
 
-Check out the [getting started guide for logcli](https://grafana.com/docs/loki/latest/getting-started/logcli/) to learn more about querying.
+This is it! Loki is now running as a Docker container.
 
+Data from Loki will be stored in `~/.loki-shell/data`
 
-Save your `.bashrc` file and reload it with `source ~/.bashrc` or restart your shell!
+The image is run with `--restart=unless-stopped` so it will restart at reboot but will stay stopped if you run `docker stop loki-shell`
 
+#### Binary
 
-#### Zsh
-
-Open `~/.zshrc` in your favorite editor
-
-Find this line that fzf installed:
+There are many ways to run a binary on a linux system, this script can install a systemd service.  If you don't have systemd you can still use the binary install:
 
 ```bash
-[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+[y] to run Loki in Docker, [n] to run Loki as a binary ([y]/n) n
+
+Run Loki with systemd? ([y]/n) n
+
+This is as far as this script can take you
+You will need to setup an auto-start for Loki
+It can be run with this command: /home/username/.loki-shell/bin/loki -config.file=/home/username/.loki-shell/config/loki-binary-config.yaml
 ```
 
-Immediately after this we are going to overload the function fzf uses for showing the history as well as use precmd to add a function for intercepting commands to send to Loki:
+The script will spit out the command you need to use to run Loki and you will be on your own to setup an init script or another method of auto-starting it.
+
+You can just run the command directly if you want and run Loki from your current shell!
+
+If you _DO_ have systemd, you have the option of letting the script install the systemd service or showing you the commands to run yourself:
 
 ```bash
-[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+Run Loki with systemd? ([y]/n) y
 
-# NOTE when changing the Loki URL, also remember to change the promtail config: ~/.loki-shell/config/promtail-logging-config.yaml
-export LOKI_URL="http://localhost:4100"
-
-fzf-history-widget() {
-  local selected num
-  selected=( $($HOME/.loki-shell/bin/logcli query "{job=\"shell\", host=\"$HOST\"}" --addr=$LOKI_URL --limit=50000 --batch=1000 --since=720h -o raw --quiet | stdbuf -o0 awk '!seen[$0]++' |
-    FZF_DEFAULT_OPTS="--height ${FZF_TMUX_HEIGHT:-40%} $FZF_DEFAULT_OPTS -n2..,.. --tiebreak=index --bind=ctrl-r:toggle-sort $FZF_CTRL_R_OPTS --query=${(qqq)LBUFFER} +m" $(__fzfcmd)) )
-  local ret=$?
-  if [ -n "$selected" ]; then
-    selected=$(echo $selected | tr -d '\n')
-    zle -U $selected
-  fi
-  zle reset-prompt
-  return $ret
-}
-
-function _send_to_loki() {
-        (HISTTIMEFORMAT= builtin history -1 | 
-        sed 's/^ *\([0-9]*\)\** *//' | 
-        $HOME/.loki-shell/bin/promtail \
-        -config.file=$HOME/.loki-shell/config/promtail-logging-config.yaml \
-        --stdin -server.disable=true -log.level=error \
-        --client.external-labels=host=$HOST 2>&1 | logger -t loki-shell-promtail &)
-}
-[[ -z $precmd_functions ]] && precmd_functions=()
-[[ $precmd_functions =~ _send_to_loki ]] || precmd_functions=($precmd_functions _send_to_loki)
-
-alias hist="$HOME/.loki-shell/bin/logcli --addr=$LOKI_URL"
+Installing the systemd service requires root permissions.
+[y] to run these commands with sudo [n] to print out the commands and you can run them yourself. ([y]/n) n
+sudo cp /home/ed/.loki-shell/config/loki-shell.service /etc/systemd/system/loki-shell.service
+sudo systemctl daemon-reload
+sudo systemctl enable loki-shell
+sudo systemctl start loki-shell
+Copy these commands and run them when the script finishes. (press enter to continue)
 ```
 
-The alias at the end is optional but will make it easier to query Loki directly for your shell history.
+#### Shell integration
 
-Check out the [getting started guide for logcli](https://grafana.com/docs/loki/latest/getting-started/logcli/) to learn more about querying.
+Regardless of how you installed Loki, you should now see a prompt:
 
-Save your `.zshrc` file and reload it with `source ~/.zshrc` or restart your shell!
+```bash
+Enter the URL for your Loki server or press enter for default (http://localhost:4100)
+```
 
-On macOs the `stdbuf` utility doesn't exist. Homebrew has a version called `gstdbuf`. It can be installed using `brew install coreutils`. The function in the `.zshrc` has to be updated with the new name.
+If you had setup a centralized Loki you would enter that URL here, however for this demo we are going to use the default, you can just press enter.
+
+A lot of text will spit out explaining all the entries added to your `~.bashrc` or `~.zshrc` (or both!)
+
+That's it!
+
+```bash
+Finished. Restart your shell or reload config file.
+   source ~/.bashrc  # bash
+   source ~/.zshrc   # zsh
+```
 
 ### Step 4: Try it out!
 
@@ -304,6 +173,9 @@ Also notice that when switching between terminals and entering commands they are
 Use `ctrl-r` multiple times to toggle between sorting by time and relevance.
 
 **Note:** The configuration applied here will only show the query history for the current host even if you are sending shell data from multiple hosts to Loki, I think by default this makes the most sense.  There is a lot you can tweak here if you would like this behavior to change, see the [repo](https://github.com/slim-bean/loki-shell) to learn more.
+
+
+Check out the [getting started guide for logcli](https://grafana.com/docs/loki/latest/getting-started/logcli/) to learn more about querying.
 
 ## Extra Credit
 

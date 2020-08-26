@@ -92,9 +92,18 @@ loki_shell_base=$(pwd)
 loki_shell_base_esc=$(printf %q "$loki_shell_base")
 
 # make some directories
-mkdir "$loki_shell_base"/data
-mkdir "$loki_shell_base"/config
-mkdir "$loki_shell_base"/bin
+mkdir -p "$loki_shell_base"/data
+mkdir -p "$loki_shell_base"/config
+mkdir -p "$loki_shell_base"/bin
+
+# check for stdbuf
+if ! hash stdbuf 2>/dev/null; then
+    if ! hash gstdbuf 2>/dev/null; then
+      echo 'loki-shell requires either stdbuf or gstdbuf to be installed and on the path'
+      echo 'install the coreutils package and re-run this install script (brew install coreutils)'
+      exit 1
+    fi
+fi
 
 ask() {
   while true; do

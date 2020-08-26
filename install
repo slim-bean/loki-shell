@@ -109,7 +109,7 @@ ask() {
 }
 
 prompt() {
-  read -p "$1 (press any key to continue) " -r
+  read -p "$1 (press enter to continue) " -r
 }
 
 prompt_string() {
@@ -310,32 +310,37 @@ if [ $install_loki -eq 1 ]; then
       prompt "Existing config file found at $loki_shell_base/.loki-shell/config/loki-binary-config.yaml\nFile will not be modified\n"
     else
       cp "$loki_shell_base"/cfg-template/loki-local-config.yaml "$loki_shell_base"/config/loki-binary-config.yaml
-      sed -i "s|FIXME|$loki_shell_base|g" config/loki-binary-config.yaml
+      sed -i "s|FIXME|$loki_shell_base|g" "$loki_shell_base"/config/loki-binary-config.yaml
     fi
     echo
     ask "Run Loki with systemd?"
     systemd=$?
     if [ $systemd -eq 1 ]; then
-      cp "$loki_shell_base"/cfg-template/loki.service "$loki_shell_base"/config/loki.service
-      sed -i "s|FIXME|$loki_shell_base|g" "$loki_shell_base"/config/loki.service
-      sed -i "s|USER|$USER|g" "$loki_shell_base"/config/loki.service
+      cp "$loki_shell_base"/cfg-template/loki-shell.service "$loki_shell_base"/config/loki-shell.service
+      sed -i "s|FIXME|$loki_shell_base|g" "$loki_shell_base"/config/loki-shell.service
+      sed -i "s|USER|$USER|g" "$loki_shell_base"/config/loki-shell.service
       echo
-      ask "Installing the systemd service requires root permissions.\n[y] to run these commands with sudo [n] to print out the commands and you can run them yourself."
+      echo "Installing the systemd service requires root permissions."
+      ask "[y] to run these commands with sudo [n] to print out the commands and you can run them yourself."
       run_sudo_cmds=$?
       if [ $run_sudo_cmds -eq 1 ]; then
-        sudo "$loki_shell_base"/cp $loki_shell_base/config/loki.service /etc/systemd/system/loki.service
+        sudo "$loki_shell_base"/cp $loki_shell_base/config/loki-shell.service /etc/systemd/system/loki-shell.service
         sudo systemctl daemon-reload
         sudo systemctl enable loki
         sudo systemctl start loki
       else
-        echo "sudo cp $loki_shell_base/config/loki.service /etc/systemd/system/loki.service"
+        echo "sudo cp $loki_shell_base/config/loki-shell.service /etc/systemd/system/loki-shell.service"
         echo "sudo systemctl daemon-reload"
-        echo "sudo systemctl enable loki"
-        echo "sudo systemctl start loki"
+        echo "sudo systemctl enable loki-shell"
+        echo "sudo systemctl start loki-shell"
         prompt "Copy these commands and run them when the script finishes."
       fi
     else
-      echo "This is as far as this script can take you, to run Loki run $loki_shell_base/.loki-shell/bin/loki -config.file=$loki_shell_base/.loki-shell/config/loki-binary-config.yaml"
+      echo
+      echo "This is as far as this script can take you"
+      echo "You will need to setup an auto-start for Loki"
+      echo "It can be run with this command: $loki_shell_base/bin/loki -config.file=$loki_shell_base/config/loki-binary-config.yaml"
+      prompt ""
     fi
   fi
 fi

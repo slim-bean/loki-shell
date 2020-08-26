@@ -5,7 +5,7 @@ After=network.target
 [Service]
 Type=simple
 User=USER
-ExecStart=FIXME/.loki-shell/bin/loki -config.file FIXME/.loki-shell/config/loki-local-config.yaml
+ExecStart=FIXME/bin/loki -config.file FIXME/config/loki-binary-config.yaml
 Restart=always
 RestartSec=10
 

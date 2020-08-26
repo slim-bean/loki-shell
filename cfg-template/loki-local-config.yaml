@@ -31,12 +31,12 @@ schema_config:
 
 storage_config:
   boltdb_shipper:
-    active_index_directory: FIXME/.loki-shell/data/index
+    active_index_directory: FIXME/data/index
     shared_store: filesystem
-    cache_location: FIXME/.loki-shell/data/boltdb-cache
+    cache_location: FIXME/data/boltdb-cache
     cache_ttl: 24h # When using filesystem store, files are already local so there isn't a reason to really cache them very long, 24h is default
   filesystem:
-    directory: FIXME/.loki-shell/data/chunks
+    directory: FIXME/data/chunks
 limits_config:
   reject_old_samples: true
   reject_old_samples_max_age: 168h

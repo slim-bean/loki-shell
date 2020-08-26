@@ -1,13 +1,17 @@
 if hash stdbuf 2>/dev/null; then
-    _bufcmd=stdbuf
+    _bufcmd(){
+      stdbuf
+    }
 else
-    _bufcmd=gstdbuf
+    _bufcmd(){
+      gstdbuf
+    }
 fi
 
 __fzf_history__() {
   local output
   output=$(
-    $HOME/.loki-shell/bin/logcli query "{job=\"shell\", host=\"$HOSTNAME\"}" --addr=$LOKI_URL --limit=50000 --batch=1000 --since=720h -o raw --quiet | $(eval _bufcmd) -o0 awk '!seen[$0]++' |
+    $HOME/.loki-shell/bin/logcli query "{job=\"shell\", host=\"$HOSTNAME\"}" --addr=$LOKI_URL --limit=50000 --batch=1000 --since=720h -o raw --quiet | _bufcmd -o0 awk '!seen[$0]++' |
       FZF_DEFAULT_OPTS="--height ${FZF_TMUX_HEIGHT:-40%} $FZF_DEFAULT_OPTS -n2..,.. --tiebreak=index --bind=ctrl-r:toggle-sort $FZF_CTRL_R_OPTS +m " $(__fzfcmd) --query "$READLINE_LINE"
       ) || return
   READLINE_LINE=${output#*$'\t'}

@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+cat <<EOF
+
+I'm sorry, the uninstall script isn't very smart yet... But here is how you uninstall loki-shell
+
+First remove the entries made in ~/.bashrc or ~/.zshrc (should be a line with loki-shell in it)
+
+Restart your shell
+
+Stop and remove Loki:
+
+docker rm -f loki-shell
+
+or
+
+sudo systemctl stop loki
+sudo systemctl disable loki
+sudo rm /etc/systemd/system/loki.service
+sudo systemctl daemon-reload
+
+
+Remove all the download files and data files:
+
+
+sudo rm -rf ~/.loki-shell
+
+
+Uninstall fzf (optional, you can still keep and use fzf if you like it)
+
+~/.fzf/uninstall
+rm -rf ~/.fzf
+
+
+EOF

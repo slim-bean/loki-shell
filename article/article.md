@@ -69,7 +69,7 @@ Next we need to download a config file
 
 ```bash
 cd ~/.loki-shell/config
-curl -O -L "https://raw.githubusercontent.com/slim-bean/loki-shell/master/cfg/loki-docker-local-config.yaml"
+curl -O -L "https://raw.githubusercontent.com/slim-bean/loki-shell/master/cfg-template/loki-docker-local-config.yaml"
 ```
 
 The defaults in this config file were tuned for this application with some comments explaining why, feel free to check it out.
@@ -108,7 +108,7 @@ Next download a configuration file:
 
 ```bash
 cd ~/.loki-shell/config
-curl -O -L "https://raw.githubusercontent.com/slim-bean/loki-shell/master/cfg/loki-local-config.yaml"
+curl -O -L "https://raw.githubusercontent.com/slim-bean/loki-shell/master/cfg-template/loki-local-config.yaml"
 ```
 
 There are a few paths which need to be set, all the FIXME's need to become absolute paths:
@@ -130,7 +130,7 @@ However if you want Loki to run in the background and enable it across reboots w
 Now we will download a systemd service file:
 
 ```bash
-curl -O -L "https://raw.githubusercontent.com/slim-bean/loki-shell/master/cfg/loki.service"
+curl -O -L "https://raw.githubusercontent.com/slim-bean/loki-shell/master/cfg-template/loki.service"
 ```
 
 This time we need to update the path as well as the user who will run Loki
@@ -185,7 +185,7 @@ We also need a promtail config file:
 
 ```bash
 cd ~/.loki-shell/config
-curl -O -L "https://raw.githubusercontent.com/slim-bean/loki-shell/master/cfg/promtail-logging-config.yaml"
+curl -O -L "https://raw.githubusercontent.com/slim-bean/loki-shell/master/cfg-template/promtail-logging-config.yaml"
 ```
 
 #### Bash

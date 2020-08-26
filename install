@@ -290,14 +290,14 @@ if [ $install_loki -eq 1 ]; then
     if [ -x "$loki_shell_base"/config/loki-docker-config.yaml ]; then
       prompt "Existing config file found at $loki_shell_base/.loki-shell/config/loki-docker-config.yaml\nFile will not be modified\n"
     else
-      cp cfg-template/loki-docker-local-config.yaml config/loki-docker-config.yaml
+      cp "$loki_shell_base"/cfg-template/loki-docker-local-config.yaml "$loki_shell_base"/config/loki-docker-config.yaml
     fi
 
     docker inspect loki-shell | grep -q "grafana/loki:$version"
     if [ $? -ne 0 ]; then
       docker stop loki-shell || true
       docker rm loki-shell || true
-      docker run -d --restart=unless-stopped --name=loki-shell --mount type=bind,source=$loki_shell_base/.loki-shell/config/loki-docker-config.yaml,target=/etc/loki/local-config.yaml --mount type=bind,source=$loki_shell_base/.loki-shell/data,target=/loki -p 4100:4100 grafana/loki:$version
+      docker run -d --restart=unless-stopped --name=loki-shell --user "$(id -u)":"$(id -g)" --mount type=bind,source=$loki_shell_base/.loki-shell/config/loki-docker-config.yaml,target=/etc/loki/local-config.yaml --mount type=bind,source=$loki_shell_base/.loki-shell/data,target=/loki -p 4100:4100 grafana/loki:$version
     else
       echo "loki-shell docker image already running at correct version"
     fi
@@ -305,21 +305,21 @@ if [ $install_loki -eq 1 ]; then
     if [ -x "$loki_shell_base"/config/loki-binary-confg.yaml ]; then
       prompt "Existing config file found at $loki_shell_base/.loki-shell/config/loki-binary-config.yaml\nFile will not be modified\n"
     else
-      cp cfg-template/loki-local-config.yaml config/loki-binary-config.yaml
+      cp "$loki_shell_base"/cfg-template/loki-local-config.yaml "$loki_shell_base"/config/loki-binary-config.yaml
       sed -i "s|FIXME|$loki_shell_base|g" config/loki-binary-config.yaml
     fi
     echo
     ask "Run Loki with systemd?"
     systemd=$?
     if [ $systemd -eq 1 ]; then
-      cp cfg-template/loki.service config/loki.service
-      sed -i "s|FIXME|$loki_shell_base|g" config/loki.service
-      sed -i "s|USER|$USER|g" config/loki.service
+      cp "$loki_shell_base"/cfg-template/loki.service "$loki_shell_base"/config/loki.service
+      sed -i "s|FIXME|$loki_shell_base|g" "$loki_shell_base"/config/loki.service
+      sed -i "s|USER|$USER|g" "$loki_shell_base"/config/loki.service
       echo
       ask "Installing the systemd service requires root permissions.\n[y] to run these commands with sudo [n] to print out the commands and you can run them yourself."
       run_sudo_cmds=$?
       if [ $run_sudo_cmds -eq 1 ]; then
-        sudo cp $loki_shell_base/config/loki.service /etc/systemd/system/loki.service
+        sudo "$loki_shell_base"/cp $loki_shell_base/config/loki.service /etc/systemd/system/loki.service
         sudo systemctl daemon-reload
         sudo systemctl enable loki
         sudo systemctl start loki
@@ -347,8 +347,8 @@ if [ $update_config -eq 2 ]; then
   if [ -x "$loki_shell_base"/config/promtail-logging-config.yaml ]; then
     prompt "Existing promtail config file found at $loki_shell_base/.loki-shell/config/promtail-logging-config.yaml\nFile will not be modified\n"
   else
-    cp cfg-template/promtail-logging-config.yaml config/promtail-logging-config.yaml
-    sed -i "s|HOST|$loki_host|g" config/promtail-logging-config.yaml
+    cp "$loki_shell_base"/cfg-template/promtail-logging-config.yaml "$loki_shell_base"/config/promtail-logging-config.yaml
+    sed -i "s|HOST|$loki_host|g" "$loki_shell_base"/config/promtail-logging-config.yaml
   fi
 fi
 echo

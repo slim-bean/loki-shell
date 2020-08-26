@@ -323,15 +323,15 @@ if [ $install_loki -eq 1 ]; then
       prompt "File will not be modified"
     else
       cp "$loki_shell_base"/cfg-template/loki-local-config.yaml "$loki_shell_base"/config/loki-binary-config.yaml
-      sed -i "s|FIXME|$loki_shell_base|g" "$loki_shell_base"/config/loki-binary-config.yaml
+      sed -i.bak "s|FIXME|$loki_shell_base|g" "$loki_shell_base"/config/loki-binary-config.yaml
     fi
     echo
     ask "Run Loki with systemd?"
     systemd=$?
     if [ $systemd -eq 1 ]; then
       cp "$loki_shell_base"/cfg-template/loki-shell.service "$loki_shell_base"/config/loki-shell.service
-      sed -i "s|FIXME|$loki_shell_base|g" "$loki_shell_base"/config/loki-shell.service
-      sed -i "s|USER|$USER|g" "$loki_shell_base"/config/loki-shell.service
+      sed -i.bak "s|FIXME|$loki_shell_base|g" "$loki_shell_base"/config/loki-shell.service
+      sed -i.bak "s|USER|$USER|g" "$loki_shell_base"/config/loki-shell.service
       echo
       echo "Installing the systemd service requires root permissions."
       ask "[y] to run these commands with sudo [n] to print out the commands and you can run them yourself."
@@ -372,7 +372,7 @@ if [ $update_config -eq 2 ]; then
     prompt "File will not be modified"
   else
     cp "$loki_shell_base"/cfg-template/promtail-logging-config.yaml "$loki_shell_base"/config/promtail-logging-config.yaml
-    sed -i "s|HOST|$loki_host|g" "$loki_shell_base"/config/promtail-logging-config.yaml
+    sed -i.bak "s|HOST|$loki_host|g" "$loki_shell_base"/config/promtail-logging-config.yaml
   fi
 fi
 echo

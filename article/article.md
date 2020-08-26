@@ -61,8 +61,7 @@ Say yes to all the prompted questions.
 
 ### Step 2: Install loki-shell
 
-I wrote a bash script to simplify the setup process so following exactly how fzf installs, 
-this is how you can install Loki as well as configure your shells to communicate your history to and from it.
+Using the same model of installation as fzf, loki shell also has a git repo and install script:
 
 ```bash
 git clone --depth 1 https://github.com/slim-bean/loki-shell.git ~/.loki-shell
@@ -75,7 +74,7 @@ Next it will download binaries for Promtail, Logcli, and Loki
 
 Then you will get the first question:
 
-```bash
+```none
 Do you want to install Loki? ([y]/n)
 ```
 
@@ -87,7 +86,7 @@ I recommend using Docker if it's available as I think it simplifies operations a
 
 #### Docker
 
-```bash
+```none
 [y] to run Loki in Docker, [n] to run Loki as a binary ([y]/n) y
 Error: No such object: loki-shell
 Error response from daemon: No such container: loki-shell
@@ -103,11 +102,13 @@ Data from Loki will be stored in `~/.loki-shell/data`
 
 The image is run with `--restart=unless-stopped` so it will restart at reboot but will stay stopped if you run `docker stop loki-shell`
 
+You can skip to _Shell integration_
+
 #### Binary
 
 There are many ways to run a binary on a linux system, this script can install a systemd service.  If you don't have systemd you can still use the binary install:
 
-```bash
+```none
 [y] to run Loki in Docker, [n] to run Loki as a binary ([y]/n) n
 
 Run Loki with systemd? ([y]/n) n
@@ -123,7 +124,7 @@ You can just run the command directly if you want and run Loki from your current
 
 If you _DO_ have systemd, you have the option of letting the script install the systemd service or showing you the commands to run yourself:
 
-```bash
+```none
 Run Loki with systemd? ([y]/n) y
 
 Installing the systemd service requires root permissions.
@@ -139,7 +140,7 @@ Copy these commands and run them when the script finishes. (press enter to conti
 
 Regardless of how you installed Loki, you should now see a prompt:
 
-```bash
+```none
 Enter the URL for your Loki server or press enter for default (http://localhost:4100)
 ```
 
@@ -149,7 +150,7 @@ A lot of text will spit out explaining all the entries added to your `~.bashrc` 
 
 That's it!
 
-```bash
+```none
 Finished. Restart your shell or reload config file.
    source ~/.bashrc  # bash
    source ~/.zshrc   # zsh

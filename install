@@ -113,7 +113,7 @@ prompt() {
 }
 
 prompt_string() {
-  read -p "$1 (http://localhost:4100) " -r
+  read -p "$1 ($2) " -r
   REPLY=${REPLY:-"$2"}
   echo $REPLY
 }
@@ -280,7 +280,6 @@ append_line() {
 }
 
 # Install Loki
-sudo apt-get update
 
 echo
 ask "Do you want to install Loki?"
@@ -302,7 +301,7 @@ if [ $install_loki -eq 1 ]; then
     if [ $? -ne 0 ]; then
       docker stop loki-shell || true
       docker rm loki-shell || true
-      docker run -d --restart=unless-stopped --name=loki-shell --user "$(id -u)":"$(id -g)" --mount type=bind,source=$loki_shell_base/.loki-shell/config/loki-docker-config.yaml,target=/etc/loki/local-config.yaml --mount type=bind,source=$loki_shell_base/.loki-shell/data,target=/loki -p 4100:4100 grafana/loki:$version
+      docker run -d --restart=unless-stopped --name=loki-shell --user "$(id -u)":"$(id -g)" --mount type=bind,source="$loki_shell_base"/config/loki-docker-config.yaml,target=/etc/loki/local-config.yaml --mount type=bind,source="$loki_shell_base"/data,target=/loki -p 4100:4100 grafana/loki:"$version"
     else
       echo "loki-shell docker image already running at correct version"
     fi
@@ -345,10 +344,11 @@ fi
 
 if [ $update_config -eq 2 ]; then
   # The script used to ask if you wanted to update shell files, I removed this so set this var to the value of "yes"
-  updated_config=1
+  update_config=1
 
   default_host="http://localhost:4100"
-  loki_host=$(prompt_string "")
+  echo
+  loki_host=$(prompt_string "Enter the URL for your Loki server or press enter for default" "$default_host")
   if [ -x "$loki_shell_base"/config/promtail-logging-config.yaml ]; then
     prompt "Existing promtail config file found at $loki_shell_base/.loki-shell/config/promtail-logging-config.yaml\nFile will not be modified\n"
   else
@@ -359,8 +359,11 @@ fi
 echo
 for shell in $shells; do
   [ $shell = zsh ] && dest=${ZDOTDIR:-~}/.zshrc || dest=~/.bashrc
-  append_line $update_config "# NOTE when changing the Loki URL, also remember to change the promtail config: ~/.loki-shell/config/promtail-logging-config.yaml\nexport LOKI_URL=\"$loki_host\""
-  append_line $update_config "[ -f ${prefix}/shell/loki-shell.${shell} ] && ${prefix}/shell/loki-shell.${shell}" "$dest" "${prefix}.${shell}"
+  append_line $update_config "############## BEGIN LOKI-SHELL #####################" "$dest"
+  append_line $update_config "# NOTE when changing the Loki URL, also remember to change the promtail config: ~/.loki-shell/config/promtail-logging-config.yaml" "$dest"
+  append_line $update_config "export LOKI_URL=\"$loki_host\"" "$dest" "export LOKI_URL"
+  append_line $update_config "[ -f ${prefix}/shell/loki-shell.${shell} ] && ${prefix}/shell/loki-shell.${shell}" "$dest" "${prefix}/shell/loki-shell.${shell}"
+  append_line $update_config "############## END LOKI-SHELL   #####################" "$dest"
 done
 
 

@@ -38,13 +38,6 @@ The best part? All of this functionality is available for anyone to use, for fre
 **Note:** We will not be changing any existing behaviors around history, **your existing shell history command and history settings will be untouched.** We are hooking command history to duplicate it to Loki via `$PROMPT_COMMAND` in Bash and `precmd` in Zsh, and on the `ctrl-r` side of things we are overloading the function fzf uses to hook the `ctrl-r` command.  It is safe to try this and if you decide you don't like it follow the steps in the Uninstall section to remove all traces, your shell history will be untouched.
 
 The config files and some additional instructions and information to take this project even further can be found at: https://github.com/slim-bean/loki-shell
- 
-Let's get started! first we need to make a directory to store config files, binaries and some cached data:
-
-```bash
-cd ~
-mkdir .loki-shell && cd .loki-shell && mkdir data bin config
-```
 
 ### Step 1: Install fzf
 

@@ -37,16 +37,15 @@ shells="bash zsh"
 prefix='~/.loki-shell'
 prefix_expand=~/.loki-shell
 fish_dir=${XDG_CONFIG_HOME:-$HOME/.config}/fish
+docker_tag="grafana/loki:$version"
+binary_only=0
 
 help() {
   cat << EOF
 usage: $0 [OPTIONS]
 
     --help               Show this message
-    --bin                Download fzf binary only; Do not generate ~/.fzf.{bash,zsh}
-    --all                Download fzf binary and update configuration files
-                         to enable key bindings and fuzzy completion
-    --xdg                Generate files under \$XDG_CONFIG_HOME/fzf
+    --bin                Download binaries only
     --[no-]key-bindings  Enable/disable key bindings (CTRL-T, CTRL-R, ALT-C)
     --[no-]completion    Enable/disable fuzzy completion (bash & zsh)
     --[no-]update-rc     Whether or not to update shell configuration files
@@ -55,30 +54,44 @@ usage: $0 [OPTIONS]
     --no-zsh             Do not set up zsh configuration
     --no-fish            Do not set up fish configuration
 
-    --32                 Download 32-bit binary
-    --64                 Download 64-bit binary
+    --docker-tag         Specify an exact docker image to use for Loki e.g. --docker-tag=grafana/loki:1.6.1
 EOF
 }
 
-for opt in "$@"; do
-  case $opt in
+while test $# -gt 0; do
+  case $1 in
     --help)
       help
       exit 0
       ;;
-    --all)
-      auto_completion=1
-      key_bindings=1
+    --update-rc)
       update_config=1
+      shift
       ;;
-    --update-rc)       update_config=1   ;;
-    --no-update-rc)    update_config=0   ;;
-    --32)              binary_arch=386   ;;
-    --64)              binary_arch=amd64 ;;
-    --bin)             ;;
-    --no-bash)         shells=${shells/bash/} ;;
-    --no-zsh)          shells=${shells/zsh/} ;;
-    --no-fish)         shells=${shells/fish/} ;;
+    --no-update-rc)
+      update_config=0
+      shift
+      ;;
+    --bin)
+      binary_only=1
+      shift
+      ;;
+    --no-bash)
+      shells=${shells/bash/}
+      shift
+      ;;
+    --no-zsh)
+      shells=${shells/zsh/}
+      shift
+      ;;
+    --no-fish)
+      shells=${shells/fish/}
+      shift
+      ;;
+    --docker-tag*)
+      docker_tag=$(echo $1 | sed -e 's/^[^=]*=//g')
+      shift
+      ;;
     *)
       echo "unknown option: $opt"
       help
@@ -241,7 +254,7 @@ case "$archi" in
   *)             binary_available=0 binary_error=1 ;;
 esac
 
-[[ "$*" =~ "--bin" ]] && exit 0
+[[ ${binary_only} -eq 1 ]] && exit 0
 
 for s in $shells; do
   if ! command -v "$s" > /dev/null; then
@@ -308,11 +321,11 @@ if [ $install_loki -eq 1 ]; then
       cp "$loki_shell_base"/cfg-template/loki-docker-local-config.yaml "$loki_shell_base"/config/loki-docker-config.yaml
     fi
 
-    docker inspect loki-shell | grep -q "grafana/loki:$version"
+    docker inspect loki-shell | grep -q "$docker_tag"
     if [ $? -ne 0 ]; then
       docker stop loki-shell || true
       docker rm loki-shell || true
-      docker run -d --restart=unless-stopped --name=loki-shell --user "$(id -u)":"$(id -g)" --mount type=bind,source="$loki_shell_base"/config/loki-docker-config.yaml,target=/etc/loki/local-config.yaml --mount type=bind,source="$loki_shell_base"/data,target=/loki -p 4100:4100 grafana/loki:"$version"
+      docker run -d --restart=unless-stopped --name=loki-shell --user "$(id -u)":"$(id -g)" --mount type=bind,source="$loki_shell_base"/config/loki-docker-config.yaml,target=/etc/loki/local-config.yaml --mount type=bind,source="$loki_shell_base"/data,target=/loki -p 4100:4100 "$docker_tag"
     else
       echo "loki-shell docker image already running at correct version"
     fi

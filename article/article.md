@@ -48,7 +48,9 @@ git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
 ~/.fzf/install
 ```
 
-the git install method always gets you the most recent version and also makes updates as simple as
+_Say yes to all the prompted questions._
+
+The git install method always gets you the most recent version and also makes updates as simple as
 
 ```bash
 cd ~/.fzf
@@ -56,7 +58,7 @@ git pull
 ./install
 ```
 
-Say yes to all the prompted questions.
+*NOTE* If you previously had fzf installed, make sure you have the key bindings enabled (make sure when you type ctrl-r fzf pops up). You can re-run the fzf install to enable key bindings if necessary. 
 
 
 ### Step 2: Install loki-shell
@@ -169,6 +171,8 @@ Use `ctrl-r` multiple times to toggle between sorting by time and relevance.
 **Note:** The configuration applied here will only show the query history for the current host even if you are sending shell data from multiple hosts to Loki, I think by default this makes the most sense.  There is a lot you can tweak here if you would like this behavior to change, see the [repo](https://github.com/slim-bean/loki-shell) to learn more.
 
 
+Also installed is a an alias called `hist`
+
 Check out the [getting started guide for logcli](https://grafana.com/docs/loki/latest/getting-started/logcli/) to learn more about querying.
 
 ## Extra Credit
@@ -204,49 +208,12 @@ A troubleshooting guide is available on the [repo](https://github.com/slim-bean/
 ## Improvements
 
 I think there is still a lot that can be improved and expanded on this idea, so please stay connected with the git repo and feel free to send any issues or PRs with your ideas!  this is the best place to 
-Query examples, rate queries
-Note taking?
-powershell
 
 
 ## Uninstalling
 
-Uninstalling is fairly straightforward:
-
-First remove the entries made in `~/.bashrc` or `~/.zshrc`
-
-Restart your shell
-
-Stop and remove Loki:
+An uninstall script is included:
 
 ```
-docker rm -f loki-shell
+~/.loki-shell/uninstall
 ```
-
-or
-
-```
-sudo systemctl stop loki
-sudo systemctl disable loki
-sudo rm /etc/systemd/system/loki.service
-sudo systemctl daemon-reload
-```
-
-Remove all the download files and data files:
-
-```
-sudo rm -rf ~/.loki-shell
-```
-
-Uninstall fzf (optional, you can still keep and use fzf if you like it)
-
-```
-~/.fzf/uninstall
-rm -rf ~/.fzf
-```
-
-
-
-
-
-

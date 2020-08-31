@@ -1,6 +1,6 @@
 # Level up your shell history with Loki and fzf
 
-Loki is an Apache 2.0 licensed open source log aggregation framework designed by Grafana Labs and built with tremendous support from a growing community -- as well as the project I work on every day. My goal with this article is to provide an introduction to Loki in a hands-on way. I thought rather than just talking about how Loki works, a concrete use case that solves some real problems would be much more engaging! A special thanks to my colleague Jack Baldry for planting the seed for this idea. I had the Loki knowledge to make this happen, but if it weren’t for his suggestion, I don’t think we ever would have made it here.
+[Loki](https://github.com/grafana/loki) is an Apache 2.0 licensed open source log aggregation framework designed by Grafana Labs and built with tremendous support from a growing community -- as well as the project I work on every day. My goal with this article is to provide an introduction to Loki in a hands-on way. I thought rather than just talking about how Loki works, a concrete use case that solves some real problems would be much more engaging! A special thanks to my colleague Jack Baldry for planting the seed for this idea. I had the Loki knowledge to make this happen, but if it weren’t for his suggestion, I don’t think we ever would have made it here.
 
 ## The problem: Durable centralized shell history
 
@@ -226,5 +226,5 @@ To see what else you can do and learn more about Loki's query language, [check o
 
 For more ideas, troubleshooting, and updates, follow the [git repo](https://github.com/slim-bean/loki-shell). This is still a work in progress, so please report any issues there as well.
 
-To learn more about Loki, check out [the documentation](https://grafana.com/docs/loki/latest/), [blog posts](https://grafana.com/categories/loki/), and [git repo](https://github.com/grafana/loki).
+To learn more about Loki, check out [the documentation](https://grafana.com/docs/loki/latest/), [blog posts](https://grafana.com/categories/loki/), and [git repo](https://github.com/grafana/loki), or try it in [Grafana Cloud](https://grafana.com/products/cloud/).
 

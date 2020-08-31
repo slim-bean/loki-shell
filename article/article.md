@@ -4,7 +4,7 @@ Loki is an Apache 2.0 licensed open source log aggregation framework designed by
 
 ## The Problem: Durable Centralized Shell History
 
-I love my shell history and have always been a fanatical _ctrl-r_ user.  About a year ago my terminal life was forever changed when someone introduced me to the command line fuzzy finder, fzf.
+I love my shell history and have always been a fanatical _ctrl-r_ user.  About a year ago my terminal life was forever changed when my peer Dieter Plaetinck introduced me to the command line fuzzy finder, fzf.
 
 Suddenly my searching through commands went from this:
 
@@ -35,9 +35,22 @@ The best part? All of this functionality is available for anyone to use, for fre
 
 ## The Solution
 
+I'm now running Loki on a Raspberry Pi on my home network which is storing my shell history offsite in an S3 bucket.
+
+When I hit `ctrl-r` [Logcli] is used to make several batching requests which are streamed into fzf, here is an example with the top showing the logs of the Loki server on the Pi.
+
+![example](assets/example_logcli.gif)
+
+Ready to give it a try?
+
+Here are some instructions to get you setup and running Loki yourself, integrated with your shell history.  
+
+This guide is meant to keep things simple so we will run Loki locally on your computer and store all the files on the filesystem.
+
+All of this information as well as ways you can setup a more elaborate installation can be found here: https://github.com/slim-bean/loki-shell
+
 **Note:** We will not be changing any existing behaviors around history, **your existing shell history command and history settings will be untouched.** We are hooking command history to duplicate it to Loki via `$PROMPT_COMMAND` in Bash and `precmd` in Zsh, and on the `ctrl-r` side of things we are overloading the function fzf uses to hook the `ctrl-r` command.  It is safe to try this and if you decide you don't like it follow the steps in the Uninstall section to remove all traces, your shell history will be untouched.
 
-The config files and some additional instructions and information to take this project even further can be found at: https://github.com/slim-bean/loki-shell
 
 ### Step 1: Install fzf
 
@@ -49,14 +62,6 @@ git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
 ```
 
 _Say yes to all the prompted questions._
-
-The git install method always gets you the most recent version and also makes updates as simple as
-
-```bash
-cd ~/.fzf
-git pull
-./install
-```
 
 *NOTE* If you previously had fzf installed, make sure you have the key bindings enabled (make sure when you type ctrl-r fzf pops up). You can re-run the fzf install to enable key bindings if necessary. 
 
@@ -171,9 +176,19 @@ Use `ctrl-r` multiple times to toggle between sorting by time and relevance.
 **Note:** The configuration applied here will only show the query history for the current host even if you are sending shell data from multiple hosts to Loki, I think by default this makes the most sense.  There is a lot you can tweak here if you would like this behavior to change, see the [repo](https://github.com/slim-bean/loki-shell) to learn more.
 
 
-Also installed is a an alias called `hist`
+Also installed is a an alias called `hist`:
+
+```bash
+alias hist="$HOME/.loki-shell/bin/logcli --addr=$LOKI_URL"
+```
+
+Logcli can be used to query and search your history directly in Loki, allowing you to search other hosts
 
 Check out the [getting started guide for logcli](https://grafana.com/docs/loki/latest/getting-started/logcli/) to learn more about querying.
+
+LogQL metric queries can let you do some interesting things like see how many times I issued the `kc` command (my alias for kubectl) in the last 30days:
+
+![count](assets/count_kc.png)
 
 ## Extra Credit
 
@@ -199,16 +214,21 @@ You can also look for specific commands with filter expressions `{job="shell"} |
 
 Or you can start exploring the world of metrics from logs `rate({job="shell"}[1m])`!
 
-For a better understanding of Loki's query language [check out this LogQL guide](https://grafana.com/docs/loki/latest/logql/)
+![last_20_days](assets/last_20.png)
+
+Want to reconstruct a timeline from an incident, filter by a specific command and see when it was run:
+
+![command_history](assets/command_hist.png)
+
+To see what else you can do and learn more about Loki's query language [check out this LogQL guide](https://grafana.com/docs/loki/latest/logql/).
 
 ## Troubleshooting
 
-A troubleshooting guide is available on the [repo](https://github.com/slim-bean/loki-shell)
+A troubleshooting guide is available on the [git repo](https://github.com/slim-bean/loki-shell)
 
 ## Improvements
 
-I think there is still a lot that can be improved and expanded on this idea, so please stay connected with the git repo and feel free to send any issues or PRs with your ideas!  this is the best place to 
-
+I think there is still a lot that can be improved and expanded on this idea, so please stay connected with the [git repo](https://github.com/slim-bean/loki-shell) and feel free to send any issues or PRs with your ideas!
 
 ## Uninstalling
 

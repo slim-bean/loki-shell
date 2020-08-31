@@ -4,16 +4,15 @@ This project is all about how to use Loki to store your shell history!
 
 This README picks up where this [article](article/article.md) left off, which covers getting started.
 
-
 ## Good stuff to know 
 
 When you hit `ctrl-r` the default configuration will query Loki for the last 30 days of logs for the host you are on and pass them to fzf, the line limit is 50,000 lines.
 
 If your shell history for this machine is longer than 50k lines you won't get all the results for 30 days, you will get the 50k most recent.
 
-If you want to query more than 30days use logcli via the `hist` command alias we setup, likewise if you want to query multiple hosts use the `hist` alias or Grafana.
+If you want to query more than 30days use logcli via the `hist` command alias, likewise if you want to query multiple hosts use the `hist` alias or Grafana.
 
-If you don't need 30 days of shell history every time you hit `ctrl-r` in the .xxxxrc file change `--since=720h` to something shorter and source the file or restart your shell.
+If you don't need 30 days of shell history every time you hit `ctrl-r` in `~/.loki-shell/shell/loki-shell.xxsh` files change `--since=720h` to something shorter and source the file or restart your shell.
 
 If you are using the hist alias or grafana you can get all your shell history with the label `{job="shell"}`, to get a specific host `{job="shell",host="host1"}`, it's possible to use a regex to match multiple hosts too `{job="shell",host=~"host1|host2"}`
 
@@ -40,9 +39,11 @@ These are essentialy the same instructions for running with docker but they use 
 
 I'm using [Wasabi](https://wasabi.com/) because it was cheaper and something new to try, I don't know how good it is yet but so far it's been no problems.
 
+NOTE: This will replace the default local config created by the startup script, but you can always recreate that file by deleting `config/loki-docker-config.yaml` and re-running the install.
+
 ```bash
-cd ~/.loki-shell/config
-curl -O -L "https://raw.githubusercontent.com/slim-bean/loki-shell/master/cfg/loki-docker-s3-config.yaml"
+cd ~/.loki-shell/
+cp cfg-template/loki-docker-s3-config.yaml config/loki-docker-config.yaml
 ```
 
 Open the file in your favorite editor and you will need these two lines with your bucket info:
@@ -52,13 +53,10 @@ s3: https://ACCESS_KEY_ID:SECRET_ACCESS_KEY@s3.wasabisys.com/BUCKET_NAME
 region: REGION 
 ```
 
-Save your changes and Run Loki!
+Save your changes and restart Loki!
 
 ```bash
-docker run -d --restart=unless-stopped --name=loki-shell \
---mount type=bind,source=$HOME/.loki-shell/config/loki-docker-s3-config.yaml,target=/etc/loki/local-config.yaml \
---mount type=bind,source=$HOME/.loki-shell/data,target=/loki \
--p 4100:4100 grafana/loki:1.6.0
+docker restart loki-shell
 ```
 
 Migrating existing data is possible but I need to make available a tool to do this which is currently a bit hacked together, more to come here.
@@ -78,7 +76,7 @@ If you want an even more durable setup consider running two Loki instances again
 clients:
   - url: http://localhost:4100/loki/api/v1/push   # Make sure this port matches your Loki http port
     backoff_config:
-      max_period: 5s    # Keep retries short such that terminal is still usable if Loki is unavailable
+      max_period: 5s    
       max_retries: 3
   - url: https://some.other.host:4100/loki/api/v1/push
     backoff_config:
@@ -95,4 +93,32 @@ This _does_ result in double the data in the object store however Loki will hand
 
 Failures to send to loki via the promtail instances are sent to the system log via the `logger` command, search your system log for the tag `loki-shell-promtail`.
 
-Loki failures and issues should be visible in the loki log file.
+Loki failures and issues should be visible in the loki log file either with `docker logs loki-shell` or wherever systemd logs depending on how you ran Loki.
+
+If `ctrl-r` doesn't produce any results, you can test the command used in the history function manually:
+
+```
+$HOME/.loki-shell/bin/logcli query "{job=\"shell\", host=\"$HOSTNAME\"}" --addr=$LOKI_URL --limit=50000 --batch=1000 --since=720h -o raw --quiet
+```
+
+## Updates
+
+If you installed fzf the git install method always gets you the most recent version and also makes updates as simple as:
+
+```bash
+cd ~/.fzf
+git pull
+./install
+```
+
+Similarly loki-shell can be updated:
+
+```bash
+cd ~/.loki-shell
+git pull
+./install
+```
+
+Note, config files for Loki and Promtail are in the `~/.loki-shell/config` directory, the initial install copies them from `~/.loki-shell/cfg-template`
+
+Running install again to update will not replace these files once copied so you may want to manually diff any changes in `cfg-template` against the files in `config`

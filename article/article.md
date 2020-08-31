@@ -212,7 +212,7 @@ When you have more hosts sending shell commands you can limit the results to a c
 
 You can also look for specific commands with filter expressions `{job="shell"} |= "docker"`
 
-Or you can start exploring the world of metrics from logs `rate({job="shell"}[1m])`!
+Or you can start exploring the world of metrics from logs `rate({job="shell"}[1m])` to see how often you are using your shell:
 
 ![last_20_days](assets/last_20.png)
 

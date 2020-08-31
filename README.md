@@ -101,6 +101,15 @@ If `ctrl-r` doesn't produce any results, you can test the command used in the hi
 $HOME/.loki-shell/bin/logcli query "{job=\"shell\", host=\"$HOSTNAME\"}" --addr=$LOKI_URL --limit=50000 --batch=1000 --since=720h -o raw --quiet
 ```
 
+## Uninstalling
+
+An uninstall script is included:
+
+```
+~/.loki-shell/uninstall
+```
+
+
 ## Updates
 
 If you installed fzf the git install method always gets you the most recent version and also makes updates as simple as:

@@ -49,7 +49,7 @@ This guide is meant to keep things simple so we will run Loki locally on your co
 
 All of this information as well as ways you can setup a more elaborate installation can be found here: https://github.com/slim-bean/loki-shell
 
-**Note:** We will not be changing any existing behaviors around history, **your existing shell history command and history settings will be untouched.** We are hooking command history to duplicate it to Loki via `$PROMPT_COMMAND` in Bash and `precmd` in Zsh, and on the `ctrl-r` side of things we are overloading the function fzf uses to hook the `ctrl-r` command.  It is safe to try this and if you decide you don't like it follow the steps in the Uninstall section to remove all traces, your shell history will be untouched.
+**Note:** We will not be changing any existing behaviors around history, **your existing shell history command and history settings will be untouched.** We are hooking command history to duplicate it to Loki via `$PROMPT_COMMAND` in Bash and `precmd` in Zsh, and on the `ctrl-r` side of things we are overloading the function fzf uses to hook the `ctrl-r` command.  It is safe to try this and if you decide you don't like it follow the steps in the Uninstall section on the [git repo](https://github.com/slim-bean/loki-shell) to remove all traces, your shell history will be untouched.
 
 
 ### Step 1: Install fzf
@@ -63,7 +63,7 @@ git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
 
 _Say yes to all the prompted questions._
 
-*NOTE* If you previously had fzf installed, make sure you have the key bindings enabled (make sure when you type ctrl-r fzf pops up). You can re-run the fzf install to enable key bindings if necessary. 
+**NOTE** If you previously had fzf installed, make sure you have the key bindings enabled (make sure when you type ctrl-r fzf pops up). You can re-run the fzf install to enable key bindings if necessary. 
 
 
 ### Step 2: Install loki-shell
@@ -222,18 +222,9 @@ Want to reconstruct a timeline from an incident, filter by a specific command an
 
 To see what else you can do and learn more about Loki's query language [check out this LogQL guide](https://grafana.com/docs/loki/latest/logql/).
 
-## Troubleshooting
+## Final thoughts
 
-A troubleshooting guide is available on the [git repo](https://github.com/slim-bean/loki-shell)
+For more ideas, troubleshooting and updates follow the [git repo](https://github.com/slim-bean/loki-shell). This is still a work in progress so please report any issues there as well.
 
-## Improvements
+To learn more about Loki, check out [the documentation](https://grafana.com/docs/loki/latest/), [blog posts](https://grafana.com/categories/loki/), and [git repo](https://github.com/grafana/loki)
 
-I think there is still a lot that can be improved and expanded on this idea, so please stay connected with the [git repo](https://github.com/slim-bean/loki-shell) and feel free to send any issues or PRs with your ideas!
-
-## Uninstalling
-
-An uninstall script is included:
-
-```
-~/.loki-shell/uninstall
-```

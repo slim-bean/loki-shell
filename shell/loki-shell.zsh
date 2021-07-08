@@ -10,7 +10,7 @@ fi
 
 fzf-history-widget() {
   local selected num
-  selected=( $($HOME/.loki-shell/bin/logcli query "{job=\"shell\", host=\"$HOST\"}" --addr=$LOKI_URL --limit=50000 --batch=1000 --since=720h -o raw --quiet | _bufcmd |
+  selected=( $($HOME/.loki-shell/bin/logcli query "{job=\"shell\", host=\"$HOST\"}" --addr=$LOKI_URL --limit=50000 --batch=1000 --since=4380h -o raw --quiet | _bufcmd |
     FZF_DEFAULT_OPTS="--height ${FZF_TMUX_HEIGHT:-40%} $FZF_DEFAULT_OPTS -n2..,.. --tiebreak=index --bind=ctrl-r:toggle-sort $FZF_CTRL_R_OPTS --query=${(qqq)LBUFFER} +m" $(__fzfcmd)) )
   local ret=$?
   if [ -n "$selected" ]; then
@@ -22,6 +22,10 @@ fzf-history-widget() {
 }
 
 function _send_to_loki() {
+        if [[ -v PRIVATE ]]; then
+          echo "PRIVATE set, not sending to loki-shell"
+          return 0
+        fi
         (HISTTIMEFORMAT= builtin history -1 |
         sed 's/^ *\([0-9]*\)\** *//' |
         $HOME/.loki-shell/bin/promtail \
@@ -32,4 +36,4 @@ function _send_to_loki() {
 [[ -z $precmd_functions ]] && precmd_functions=()
 [[ $precmd_functions =~ _send_to_loki ]] || precmd_functions=($precmd_functions _send_to_loki)
 
-alias hist="$HOME/.loki-shell/bin/logcli --addr=$LOKI_URL"
+alias hist="$HOME/.loki-shell/bin/logcli --addr=$LOKI_URL --quiet"

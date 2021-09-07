@@ -29,7 +29,7 @@
 
 set -u
 
-version=2.0.0
+version=2.3.0
 auto_completion=
 update_config=2
 binary_arch=

@@ -29,7 +29,7 @@
 
 set -u
 
-version=2.3.0
+version=2.2.0 # TODO: Change to 2.3.1 when released. 2.3.0 is missing a --version metadata
 auto_completion=
 update_config=2
 binary_arch=

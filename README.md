@@ -4,15 +4,29 @@ This project is all about how to use Loki to store your shell history!
 
 This README picks up where this [article](article/article.md) left off, which covers getting started.
 
+## What's New
+
+### 2022/01/09
+
+* Hitting `ctrl-r` again when the search window is open will search for ALL the shell history (removes the host label from the query) searching up to the last 12 months
+* `export PRIVATE=true` will stop sending anything to Loki until you remove the environment variable with `unset PRIVATE`
+* `export LS_LOCAL=true` will query the local history instead of Loki until you remove the environment variable with `unset LS_LOCAL`
+
+NOTE: I moved from Wasabi to Google Cloud Storage because of some performance issues with Wasabi. I _think_ they were rate limiting me because the configuration I was using was loading a years worth of shell history and keeping the index files cached locally, every 5mins each cached index would be checked for changes resulting in 300+ list operations.  I think Wasabi may have become tired with me running 300+ sync List operations + 300+ compactor list operations every 5 mins on a stored total of something like 1G of data. I don't blame them but there was nothing in logs/returns etc to help me understand why compaction had suddenly become very slow and so I was frustrated so I moved things to GCS and was surprised when I discovered I was looking at $50 a month in list operations. [There is an issue for improving list operations in Loki](https://github.com/grafana/loki/issues/5018)
+
+
+
 ## Good stuff to know 
 
 When you hit `ctrl-r` the default configuration will query Loki for the last 30 days of logs for the host you are on and pass them to fzf, the line limit is 50,000 lines.
 
 If your shell history for this machine is longer than 50k lines you won't get all the results for 30 days, you will get the 50k most recent.
 
-If you want to query more than 30days use logcli via the `hist` command alias, likewise if you want to query multiple hosts use the `hist` alias or Grafana.
+If you hit `ctrl-r` Loki will be queried for all {job="shell"} logs with no `host` label for the past 12 months.
 
-If you don't need 30 days of shell history every time you hit `ctrl-r` in `~/.loki-shell/shell/loki-shell.xxsh` files change `--since=720h` to something shorter and source the file or restart your shell.
+An alias called `hist` is created which configures `logcli` to connect to loki-shell and allow you to run custom queries.
+
+If you don't need 30 days of shell history every time you hit `ctrl-r` in `~/.loki-shell/shell/loki-shell.xxsh` files change `--since=720h` to something shorter(or longer) and source the file or restart your shell.
 
 If you are using the hist alias or grafana you can get all your shell history with the label `{job="shell"}`, to get a specific host `{job="shell",host="host1"}`, it's possible to use a regex to match multiple hosts too `{job="shell",host=~"host1|host2"}`
 

@@ -14,7 +14,78 @@ This README picks up where this [article](article/article.md) left off, which co
 
 NOTE: I moved from Wasabi to Google Cloud Storage because of some performance issues with Wasabi. I _think_ they were rate limiting me because the configuration I was using was loading a years worth of shell history and keeping the index files cached locally, every 5mins each cached index would be checked for changes resulting in 300+ list operations.  I think Wasabi may have become tired with me running 300+ sync List operations + 300+ compactor list operations every 5 mins on a stored total of something like 1G of data. I don't blame them but there was nothing in logs/returns etc to help me understand why compaction had suddenly become very slow and so I was frustrated so I moved things to GCS and was surprised when I discovered I was looking at $50 a month in list operations. [There is an issue for improving list operations in Loki](https://github.com/grafana/loki/issues/5018)
 
+## Installation
 
+Here are some instructions to get you set up and run Loki yourself, integrated with your shell history.  
+
+This guide is meant to keep things simple, so we will run Loki locally on your computer and store all the files on the filesystem.
+
+**Note:** We will not be changing any existing behaviors around history, so **your existing shell history command and history settings will be untouched.** We are hooking command history to duplicate it to Loki via `$PROMPT_COMMAND` in Bash and `precmd` in Zsh, and on the `ctrl-r` side of things we are overloading the function fzf uses to hook the `ctrl-r` command. It is safe to try this, and if you decide you don't like it, follow the steps in the Uninstall section on the [git repo](https://github.com/slim-bean/loki-shell) to remove all traces. Your shell history will be untouched.
+
+
+### Step 1: Install fzf
+
+There are several ways to install fzf, but I prefer [the git instructions](https://github.com/junegunn/fzf#using-git), which are:
+ 
+```bash 
+git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
+~/.fzf/install
+```
+
+_Say yes to all the prompted questions._
+
+**NOTE** If you previously had fzf installed, make sure you have the key bindings enabled (make sure when you type ctrl-r, fzf pops up). You can re-run the fzf install to enable key bindings if necessary. 
+
+
+### Step 2: Install loki-shell
+
+Using the same model of installation as fzf, loki shell also has a git repo and install script:
+
+```bash
+git clone --depth 1 https://github.com/slim-bean/loki-shell.git ~/.loki-shell
+~/.loki-shell/install
+```
+
+The first thing the script is going to do is create the `~/.loki-shell` directory where all files will be kept (including Loki data).
+
+Next it will download binaries for Promtail, Logcli, and Loki.
+
+Then you will get the first question:
+
+```none
+Do you want to install Loki? ([y]/n)
+```
+
+**For the best use of this tool, I highly recommend setting up Loki on a server somewhere with a cloud storage providers object storage as the backend**
+
+This way your shell history can be saved from multiple computers and object storage can help protect it for all of time. Personally I run a Raspberry Pi on my home network with Loki running (just make sure it's a 64bit OS!!) and I send my history to Google Cloud Storage (S3 would work fine too!)
+
+If you have a centralized Loki running already for loki-shell, answer `n` here.
+
+If you don't have a central Loki, the script will help you setup Loki locally, it still can be nice to run Loki locally, and you could choose to use a remote object storage to save your shell history for increased durability! 
+
+There are more detailed instructutions for the prompts around installing Loki in the [original article](article/article.md#step-2-install-loki-shell)
+
+
+#### Shell integration
+
+Regardless of how you installed Loki, you should now see a prompt:
+
+```none
+Enter the URL for your Loki server or press enter for default (http://localhost:4100)
+```
+
+If you had set up a centralized Loki, you would enter that URL here. However, for this demo we are going to use the default; you can just press enter.
+
+A lot of text will spit out explaining all the entries added to your `~.bashrc` or `~.zshrc` (or both!).
+
+That's it!
+
+```none
+Finished. Restart your shell or reload config file.
+   source ~/.bashrc  # bash
+   source ~/.zshrc   # zsh
+```
 
 ## Good stuff to know 
 

@@ -22,6 +22,8 @@ ingester:
   chunk_target_size: 1048576  # Try to build bigger chunks if there is sufficient data, although for logging shell commands we will never hit this.
   chunk_retain_period: 30s
   max_transfer_retries: 0
+  wal:
+    dir: /loki/.cache/loki/wal
 
 schema_config:
   configs:

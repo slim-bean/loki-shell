@@ -12,8 +12,6 @@ This README picks up where this [article](article/article.md) left off, which co
 * `export PRIVATE=true` will stop sending anything to Loki until you remove the environment variable with `unset PRIVATE`
 * `export LS_LOCAL=true` will query the local history instead of Loki until you remove the environment variable with `unset LS_LOCAL`
 
-NOTE: I moved from Wasabi to Google Cloud Storage because of some performance issues with Wasabi. I _think_ they were rate limiting me because the configuration I was using was loading a years worth of shell history and keeping the index files cached locally, every 5mins each cached index would be checked for changes resulting in 300+ list operations.  I think Wasabi may have become tired with me running 300+ sync List operations + 300+ compactor list operations every 5 mins on a stored total of something like 1G of data. I don't blame them but there was nothing in logs/returns etc to help me understand why compaction had suddenly become very slow and so I was frustrated so I moved things to GCS and was surprised when I discovered I was looking at $50 a month in list operations. [There is an issue for improving list operations in Loki](https://github.com/grafana/loki/issues/5018)
-
 ## Installation
 
 Here are some instructions to get you set up and run Loki yourself, integrated with your shell history.  

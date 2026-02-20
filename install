@@ -34,8 +34,6 @@ auto_completion=
 update_config=2
 binary_arch=
 shells="bash zsh"
-prefix='~/.loki-shell'
-prefix_expand=~/.loki-shell
 fish_dir=${XDG_CONFIG_HOME:-$HOME/.config}/fish
 docker_tag="grafana/loki:$version"
 binary_only=0
@@ -100,23 +98,11 @@ while test $# -gt 0; do
   esac
 done
 
+# loki_shell_base is where the git repo (source files) lives
 cd "$(dirname "${BASH_SOURCE[0]}")"
 loki_shell_base=$(pwd)
-loki_shell_base_esc=$(printf %q "$loki_shell_base")
 
-# make some directories
-mkdir -p "$loki_shell_base"/data
-mkdir -p "$loki_shell_base"/config
-mkdir -p "$loki_shell_base"/bin
-
-# check for stdbuf
-if ! hash stdbuf 2>/dev/null; then
-    if ! hash gstdbuf 2>/dev/null; then
-      echo 'loki-shell requires either stdbuf or gstdbuf to be installed and on the path'
-      echo 'install the coreutils package and re-run this install script (brew install coreutils)'
-      exit 1
-    fi
-fi
+archi=$(uname -sm)
 
 ask() {
   while true; do
@@ -140,10 +126,25 @@ prompt_string() {
   echo $REPLY
 }
 
+# prefix is the install target directory (where bins, configs, data, and shell files go)
+echo
+prefix=$(prompt_string "Enter the loki-shell install directory or press enter for default" "$HOME/.loki-shell")
+
+# make install directories
+mkdir -p "$prefix"/data
+mkdir -p "$prefix"/config
+mkdir -p "$prefix"/bin
+mkdir -p "$prefix"/shell
+
+# copy shell integration files from repo to install directory
+cp "$loki_shell_base"/shell/loki-shell.bash "$prefix"/shell/
+cp "$loki_shell_base"/shell/loki-shell.zsh "$prefix"/shell/
+cp "$loki_shell_base"/shell/loki-shell-send.sh "$prefix"/shell/
+
 check_binary() {
   echo -n "  - Checking ${1} executable ... "
   local output
-  output=$("$loki_shell_base"/bin/${1} --version 2>&1)
+  output=$("$prefix"/bin/${1} --version 2>&1)
   if [ $? -ne 0 ]; then
     echo "Error: $output"
     binary_error="Invalid binary"
@@ -157,7 +158,7 @@ check_binary() {
       return 0
     fi
   fi
-  rm -f "$loki_shell_base"/bin/${1}
+  rm -f "$prefix"/bin/${1}
   return 1
 }
 
@@ -184,12 +185,12 @@ try_wget() {
 download() {
   echo "Downloading ${1}"
 
-  if [ -x "$loki_shell_base"/bin/"${1}" ]; then
+  if [ -x "$prefix"/bin/"${1}" ]; then
     echo "  - Already exists"
     check_binary ${1} && return
   fi
 
-  mkdir -p "$loki_shell_base"/bin && cd "$loki_shell_base"/bin
+  mkdir -p "$prefix"/bin && cd "$prefix"/bin
   if [ $? -ne 0 ]; then
     binary_error="Failed to create bin directory"
     return
@@ -216,38 +217,85 @@ download() {
   chmod +x ${1} && check_binary ${1}
 }
 
-# Try to download binary executable
-archi=$(uname -sm)
+# check for stdbuf
+if ! hash stdbuf 2>/dev/null; then
+    if ! hash gstdbuf 2>/dev/null; then
+      echo 'loki-shell requires either stdbuf or gstdbuf to be installed and on the path'
+      echo 'install the coreutils package and re-run this install script (brew install coreutils)'
+      exit 1
+    fi
+fi
+
+# check for curl
+if ! command -v curl > /dev/null; then
+    echo 'loki-shell requires curl to be installed and on the path'
+    exit 1
+fi
+
+# check for jq (used to safely construct JSON payloads for Loki's push API)
+if command -v jq > /dev/null; then
+    echo "jq found at $(command -v jq)"
+elif [ -x "$prefix"/bin/jq ]; then
+    echo "jq found at $prefix/bin/jq"
+else
+    echo "jq is required but not found on the path."
+    echo "Install it with your package manager (e.g. 'brew install jq' or 'apt install jq')"
+    echo "or this script can download it for you."
+    ask "Download jq?"
+    download_jq=$?
+    if [ $download_jq -eq 1 ]; then
+      jq_version="1.7.1"
+      jq_url=""
+      case "$archi" in
+        Darwin\ arm64)   jq_url="https://github.com/jqlang/jq/releases/download/jq-${jq_version}/jq-macos-arm64" ;;
+        Darwin\ *64)     jq_url="https://github.com/jqlang/jq/releases/download/jq-${jq_version}/jq-macos-amd64" ;;
+        Linux\ aarch64*) jq_url="https://github.com/jqlang/jq/releases/download/jq-${jq_version}/jq-linux-arm64" ;;
+        Linux\ armv7*)   jq_url="https://github.com/jqlang/jq/releases/download/jq-${jq_version}/jq-linux-armhf" ;;
+        Linux\ *64)      jq_url="https://github.com/jqlang/jq/releases/download/jq-${jq_version}/jq-linux-amd64" ;;
+      esac
+      if [ -n "$jq_url" ]; then
+        echo "Downloading jq..."
+        curl -fLo "$prefix/bin/jq" "$jq_url" && chmod +x "$prefix/bin/jq"
+        if [ $? -ne 0 ]; then
+          echo "Failed to download jq. Please install it manually."
+          exit 1
+        fi
+        echo "jq installed to $prefix/bin/jq"
+      else
+        echo "No pre-built jq binary available for $archi. Please install jq manually."
+        exit 1
+      fi
+    else
+      echo "jq is required. Please install it and re-run this script."
+      exit 1
+    fi
+fi
+
+# Try to download binary executables
 binary_available=1
 binary_error=""
 case "$archi" in
   Darwin\ *64)
-    download promtail promtail-darwin-${binary_arch:-amd64}.zip
     download logcli logcli-darwin-${binary_arch:-amd64}.zip
     download loki loki-darwin-${binary_arch:-amd64}.zip
     ;;
   Linux\ armv7*)
-    download promtail promtail-linux-${binary_arch:-arm}.zip
     download logcli logcli-linux-${binary_arch:-arm}.zip
     download loki loki-linux-${binary_arch:-arm}.zip
     ;;
   Linux\ armv8*)
-    download promtail promtail-linux-${binary_arch:-arm64}.zip
     download logcli logcli-linux-${binary_arch:-arm64}.zip
     download loki loki-linux-${binary_arch:-arm64}.zip
     ;;
   Linux\ aarch64*)
-    download promtail promtail-linux-${binary_arch:-arm64}.zip
     download logcli logcli-linux-${binary_arch:-arm64}.zip
     download loki loki-linux-${binary_arch:-arm64}.zip
     ;;
   Linux\ *64)
-    download promtail promtail-linux-${binary_arch:-amd64}.zip
     download logcli logcli-linux-${binary_arch:-amd64}.zip
     download loki loki-linux-${binary_arch:-amd64}.zip
     ;;
   OpenBSD\ *64)
-    download promtail promtail-freebsd-${binary_arch:-amd64}.zip
     download logcli logcli-freebsd-${binary_arch:-amd64}.zip
     download loki loki-freebsd-${binary_arch:-amd64}.zip
     ;;
@@ -313,49 +361,49 @@ if [ $install_loki -eq 1 ]; then
   ask "[y] to run Loki in Docker, [n] to run Loki as a binary"
   docker=$?
   if [ $docker -eq 1 ]; then
-    if [ -f "$loki_shell_base"/config/loki-docker-config.yaml ]; then
+    if [ -f "$prefix"/config/loki-docker-config.yaml ]; then
       echo
-      echo "Existing config file found at $loki_shell_base/.loki-shell/config/loki-docker-config.yaml"
+      echo "Existing config file found at $prefix/config/loki-docker-config.yaml"
       prompt "File will not be modified"
     else
-      cp "$loki_shell_base"/cfg-template/loki-docker-local-config.yaml "$loki_shell_base"/config/loki-docker-config.yaml
+      cp "$loki_shell_base"/cfg-template/loki-docker-local-config.yaml "$prefix"/config/loki-docker-config.yaml
     fi
 
     docker inspect loki-shell | grep -q "$docker_tag"
     if [ $? -ne 0 ]; then
       docker stop loki-shell || true
       docker rm loki-shell || true
-      docker run -d --restart=unless-stopped --name=loki-shell --user "$(id -u)":"$(id -g)" --mount type=bind,source="$loki_shell_base"/config/loki-docker-config.yaml,target=/etc/loki/local-config.yaml --mount type=bind,source="$loki_shell_base"/data,target=/loki -p 4100:4100 "$docker_tag"
+      docker run -d --restart=unless-stopped --name=loki-shell --user "$(id -u)":"$(id -g)" --mount type=bind,source="$prefix"/config/loki-docker-config.yaml,target=/etc/loki/local-config.yaml --mount type=bind,source="$prefix"/data,target=/loki -p 4100:4100 "$docker_tag"
     else
       echo "loki-shell docker image already running at correct version"
     fi
   else
-    if [ -f "$loki_shell_base"/config/loki-binary-config.yaml ]; then
+    if [ -f "$prefix"/config/loki-binary-config.yaml ]; then
       echo
-      echo "Existing config file found at $loki_shell_base/.loki-shell/config/loki-binary-config.yaml"
+      echo "Existing config file found at $prefix/config/loki-binary-config.yaml"
       prompt "File will not be modified"
     else
-      cp "$loki_shell_base"/cfg-template/loki-local-config.yaml "$loki_shell_base"/config/loki-binary-config.yaml
-      sed -i.bak "s|FIXME|$loki_shell_base|g" "$loki_shell_base"/config/loki-binary-config.yaml
+      cp "$loki_shell_base"/cfg-template/loki-local-config.yaml "$prefix"/config/loki-binary-config.yaml
+      sed -i.bak "s|FIXME|$prefix|g" "$prefix"/config/loki-binary-config.yaml
     fi
     echo
     ask "Run Loki with systemd?"
     systemd=$?
     if [ $systemd -eq 1 ]; then
-      cp "$loki_shell_base"/cfg-template/loki-shell.service "$loki_shell_base"/config/loki-shell.service
-      sed -i.bak "s|FIXME|$loki_shell_base|g" "$loki_shell_base"/config/loki-shell.service
-      sed -i.bak "s|USER|$USER|g" "$loki_shell_base"/config/loki-shell.service
+      cp "$loki_shell_base"/cfg-template/loki-shell.service "$prefix"/config/loki-shell.service
+      sed -i.bak "s|FIXME|$prefix|g" "$prefix"/config/loki-shell.service
+      sed -i.bak "s|USER|$USER|g" "$prefix"/config/loki-shell.service
       echo
       echo "Installing the systemd service requires root permissions."
       ask "[y] to run these commands with sudo [n] to print out the commands and you can run them yourself."
       run_sudo_cmds=$?
       if [ $run_sudo_cmds -eq 1 ]; then
-        sudo cp $loki_shell_base/config/loki-shell.service /etc/systemd/system/loki-shell.service
+        sudo cp $prefix/config/loki-shell.service /etc/systemd/system/loki-shell.service
         sudo systemctl daemon-reload
         sudo systemctl enable loki-shell
         sudo systemctl start loki-shell
       else
-        echo "sudo cp $loki_shell_base/config/loki-shell.service /etc/systemd/system/loki-shell.service"
+        echo "sudo cp $prefix/config/loki-shell.service /etc/systemd/system/loki-shell.service"
         echo "sudo systemctl daemon-reload"
         echo "sudo systemctl enable loki-shell"
         echo "sudo systemctl start loki-shell"
@@ -365,7 +413,7 @@ if [ $install_loki -eq 1 ]; then
       echo
       echo "This is as far as this script can take you"
       echo "You will need to setup an auto-start for Loki"
-      echo "It can be run with this command: $loki_shell_base/bin/loki -config.file=$loki_shell_base/config/loki-binary-config.yaml"
+      echo "It can be run with this command: $prefix/bin/loki -config.file=$prefix/config/loki-binary-config.yaml"
       prompt ""
     fi
   fi
@@ -380,21 +428,14 @@ if [ $update_config -eq 2 ]; then
   default_host="http://localhost:4100"
   echo
   loki_host=$(prompt_string "Enter the URL for your Loki server or press enter for default" "$default_host")
-  if [ -f "$loki_shell_base"/config/promtail-logging-config.yaml ]; then
-    echo "Existing promtail config file found at $loki_shell_base/.loki-shell/config/promtail-logging-config.yaml"
-    prompt "File will not be modified"
-  else
-    cp "$loki_shell_base"/cfg-template/promtail-logging-config.yaml "$loki_shell_base"/config/promtail-logging-config.yaml
-    sed -i.bak "s|HOST|$loki_host|g" "$loki_shell_base"/config/promtail-logging-config.yaml
-  fi
 fi
 echo
 for shell in $shells; do
   [ $shell = zsh ] && dest=${ZDOTDIR:-~}/.zshrc || dest=~/.bashrc
   append_line $update_config "############## BEGIN LOKI-SHELL #####################" "$dest"
-  append_line $update_config "# NOTE when changing the Loki URL, also remember to change the promtail config: ~/.loki-shell/config/promtail-logging-config.yaml" "$dest"
+  append_line $update_config "export LOKI_SHELL_DIR=\"${prefix}\"" "$dest" "export LOKI_SHELL_DIR"
   append_line $update_config "export LOKI_URL=\"$loki_host\"" "$dest" "export LOKI_URL"
-  append_line $update_config "[ -f ${prefix}/shell/loki-shell.${shell} ] && source ${prefix}/shell/loki-shell.${shell}" "$dest" "${prefix}/shell/loki-shell.${shell}"
+  append_line $update_config "[ -f \"\$LOKI_SHELL_DIR/shell/loki-shell.${shell}\" ] && source \"\$LOKI_SHELL_DIR/shell/loki-shell.${shell}\"" "$dest" "loki-shell.${shell}"
   append_line $update_config "############## END LOKI-SHELL   #####################" "$dest"
 done
 

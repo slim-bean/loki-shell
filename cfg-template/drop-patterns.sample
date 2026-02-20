@@ -1,0 +1,17 @@
+# loki-shell drop patterns
+# One extended regex (ERE) per line. Commands matching any pattern will NOT be sent to Loki.
+# Lines starting with # are ignored by grep.
+#
+# Examples:
+#
+# Drop commands containing a password-like argument
+# --password[= ].+
+#
+# Drop ssh/scp commands with inline passwords
+# sshpass .+
+#
+# Drop export of sensitive environment variables
+# export .*(PASSWORD|SECRET|TOKEN|KEY)=.+
+#
+# Drop commands matching partial password (first and last few chars with wildcard)
+# abc.+xyz

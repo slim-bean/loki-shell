@@ -3,6 +3,7 @@
 # This file is sourced by loki-shell.bash and loki-shell.zsh
 
 _loki_spool="${LOKI_SHELL_DIR:-$HOME/.loki-shell}/data/spool"
+_loki_drop_patterns="${LOKI_SHELL_DIR:-$HOME/.loki-shell}/config/drop-patterns"
 
 # Find jq: prefer system jq, fall back to bundled copy
 if command -v jq > /dev/null 2>&1; then
@@ -61,6 +62,11 @@ _loki_send() {
   local ts payload
 
   [ -z "$_loki_jq" ] && return 1
+
+  # Drop commands matching any pattern in the drop-patterns file
+  if [ -s "$_loki_drop_patterns" ] && printf '%s' "$cmd" | grep -qEf "$_loki_drop_patterns" 2>/dev/null; then
+    return 0
+  fi
 
   # Nanosecond timestamp: epoch seconds with 9 zeroes appended
   ts="$(date +%s)000000000"

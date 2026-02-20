@@ -48,7 +48,7 @@ git clone --depth 1 https://github.com/slim-bean/loki-shell.git ~/.loki-shell
 
 The first thing the script is going to do is create the `~/.loki-shell` directory where all files will be kept (including Loki data).
 
-Next it will download binaries for Promtail, Logcli, and Loki.
+Next it will download binaries for Logcli and Loki, and check for (or download) jq.
 
 Then you will get the first question:
 
@@ -155,28 +155,17 @@ Always safely shutdown the process.
 
 Or you can `curl http://localhost:4100/flush` to manually force a flush of all streams in memory before shutting down.
 
-If you want an even more durable setup consider running two Loki instances against the same s3 bucket and configuring promtail to send to both:
-
-```yaml
-clients:
-  - url: http://localhost:4100/loki/api/v1/push   # Make sure this port matches your Loki http port
-    backoff_config:
-      max_period: 5s    
-      max_retries: 3
-  - url: https://some.other.host:4100/loki/api/v1/push
-    backoff_config:
-      max_period: 5s
-      max_retries: 3
-```
-
-Please note the short retry times and period, this is to keep the promtail processes running for a short time in the background. If your network or Loki instances are down promtail will give up rather quickly, 15s at most, before abandoning your shell commands. 
-You can increase these timeouts just be aware if a remote endpoint is slow or unavailable the promtail process will stay running in the background trying to send logs until it times out, you could end up with a lot of them if you keep entering commands.
+If you want an even more durable setup consider running two Loki instances against the same s3 bucket. You can configure loki-shell to send to a second instance by setting `LOKI_URL_2` in your shell config alongside `LOKI_URL`.
 
 This _does_ result in double the data in the object store however Loki will handle and de-duplicate this data at query time.  All of this increases processing time, storage, costs etc but is how I run my setup.
 
+### Spool file (offline WAL)
+
+loki-shell includes a spool file at `~/.loki-shell/data/spool` that acts as a simple write-ahead log. If Loki is unreachable when a command is entered, the command is appended to the spool file. On the next command entry, loki-shell will attempt to drain the spool (in timestamp order) before sending the new command, ensuring Loki always receives entries in chronological order.
+
 ## Troubleshooting
 
-Failures to send to loki via the promtail instances are sent to the system log via the `logger` command, search your system log for the tag `loki-shell-promtail`.
+Failures to send to Loki are sent to the system log via the `logger` command, search your system log for the tag `loki-shell`.
 
 Loki failures and issues should be visible in the loki log file either with `docker logs loki-shell` or wherever systemd logs depending on how you ran Loki.
 
@@ -213,6 +202,6 @@ git pull
 ./install
 ```
 
-Note, config files for Loki and Promtail are in the `~/.loki-shell/config` directory, the initial install copies them from `~/.loki-shell/cfg-template`
+Note, config files for Loki are in the `~/.loki-shell/config` directory, the initial install copies them from `~/.loki-shell/cfg-template`
 
 Running install again to update will not replace these files once copied so you may want to manually diff any changes in `cfg-template` against the files in `config`

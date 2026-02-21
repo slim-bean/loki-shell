@@ -103,6 +103,25 @@ If you are using the hist alias or grafana you can get all your shell history wi
 
 For a much more detailed list of query possibilities check out the [LogQL Guide](https://grafana.com/docs/loki/latest/logql/)
 
+## Filtering sensitive commands
+
+You can prevent certain commands from being sent to Loki by adding patterns to `~/.loki-shell/config/drop-patterns`. This file contains one [extended regex](https://en.wikipedia.org/wiki/Regular_expression#POSIX_extended) (ERE) per line. Any command matching a pattern will be silently dropped. Lines starting with `#` are comments.
+
+Example `drop-patterns` file:
+
+```
+# Drop commands containing password arguments
+--password[= ].+
+
+# Drop sshpass usage
+sshpass .+
+
+# Drop export of sensitive env vars
+export .*(PASSWORD|SECRET|TOKEN|KEY)=.+
+```
+
+A sample file with commented-out examples is installed by default. Edit it to add your own patterns.
+
 ## Performance notes
 
 Fastest performance will be using a filesystem and having Loki run locally, however this is probably the least durable.

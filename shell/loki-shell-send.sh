@@ -74,7 +74,13 @@ _loki_send() {
         '')   continue ;;
       esac
       if printf '%s' "$cmd" | grep -qE "$pattern" 2>/dev/null; then
-        echo "dropped command matching drop-patterns line $line_num${context:+ $context}"
+        local drop_msg="dropped command matching drop-patterns line $line_num${context:+ $context}"
+        echo "$drop_msg"
+        local drop_ts="$(date +%s)000000000"
+        local drop_payload=$($_loki_jq -nc --arg host "$host" --arg ts "$drop_ts" --arg msg "$drop_msg" \
+          '{"streams":[{"stream":{"job":"shell","host":$host,"dropped":"true"},"values":[[$ts,$msg]]}]}')
+        curl -sf -o /dev/null -X POST -H "Content-Type: application/json" \
+          "$loki_url/loki/api/v1/push" -d "$drop_payload" 2>/dev/null
         return 0
       fi
       context=""

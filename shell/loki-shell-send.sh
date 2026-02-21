@@ -64,8 +64,21 @@ _loki_send() {
   [ -z "$_loki_jq" ] && return 1
 
   # Drop commands matching any pattern in the drop-patterns file
-  if [ -s "$_loki_drop_patterns" ] && printf '%s' "$cmd" | grep -qEf "$_loki_drop_patterns" 2>/dev/null; then
-    return 0
+  if [ -s "$_loki_drop_patterns" ]; then
+    local line_num=0 pattern context=""
+    while IFS= read -r pattern; do
+      line_num=$((line_num + 1))
+      # Track comment lines as context for the next pattern
+      case "$pattern" in
+        '#'*) context="$pattern"; continue ;;
+        '')   continue ;;
+      esac
+      if printf '%s' "$cmd" | grep -qE "$pattern" 2>/dev/null; then
+        echo "dropped command matching drop-patterns line $line_num${context:+ $context}"
+        return 0
+      fi
+      context=""
+    done < "$_loki_drop_patterns"
   fi
 
   # Nanosecond timestamp: epoch seconds with 9 zeroes appended

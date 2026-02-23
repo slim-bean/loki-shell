@@ -3,6 +3,7 @@
 # This file is sourced by loki-shell.bash and loki-shell.zsh
 
 _loki_spool="${LOKI_SHELL_DIR:-$HOME/.loki-shell}/data/spool"
+_loki_drop_patterns="${LOKI_SHELL_DIR:-$HOME/.loki-shell}/config/drop-patterns"
 
 # Find jq: prefer system jq, fall back to bundled copy
 if command -v jq > /dev/null 2>&1; then
@@ -61,6 +62,30 @@ _loki_send() {
   local ts payload
 
   [ -z "$_loki_jq" ] && return 1
+
+  # Drop commands matching any pattern in the drop-patterns file
+  if [ -s "$_loki_drop_patterns" ]; then
+    local line_num=0 pattern context=""
+    while IFS= read -r pattern; do
+      line_num=$((line_num + 1))
+      # Track comment lines as context for the next pattern
+      case "$pattern" in
+        '#'*) context="$pattern"; continue ;;
+        '')   continue ;;
+      esac
+      if printf '%s' "$cmd" | grep -qE "$pattern" 2>/dev/null; then
+        local drop_msg="dropped command matching drop-patterns line $line_num${context:+ $context}"
+        echo "$drop_msg"
+        local drop_ts="$(date +%s)000000000"
+        local drop_payload=$($_loki_jq -nc --arg host "$host" --arg ts "$drop_ts" --arg msg "$drop_msg" \
+          '{"streams":[{"stream":{"job":"shell","host":$host,"dropped":"true"},"values":[[$ts,$msg]]}]}')
+        curl -sf -o /dev/null -X POST -H "Content-Type: application/json" \
+          "$loki_url/loki/api/v1/push" -d "$drop_payload" 2>/dev/null
+        return 0
+      fi
+      context=""
+    done < "$_loki_drop_patterns"
+  fi
 
   # Nanosecond timestamp: epoch seconds with 9 zeroes appended
   ts="$(date +%s)000000000"

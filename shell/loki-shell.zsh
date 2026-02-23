@@ -33,7 +33,7 @@ _load_all_cmd(){
   for i in `seq 720 720 8640`
   do
     START=$(_loki_date_iso -$i)
-    ${LOKI_SHELL_DIR:-$HOME/.loki-shell}/bin/logcli query "{job=\"shell\"}" --addr=$LOKI_URL --limit=50000 --batch=1000 --from=$START --to=$END -o raw --quiet
+    ${LOKI_SHELL_DIR:-$HOME/.loki-shell}/bin/logcli query "{job=\"shell\", dropped!=\"true\"}" --addr=$LOKI_URL --limit=50000 --batch=1000 --from=$START --to=$END -o raw --quiet
     END=$START
   done
 }
@@ -49,7 +49,7 @@ fzf-history-widget() {
     selected=( $(fc -rl 1 | perl -ne 'print if !$seen{(/^\s*[0-9]+\**\s+(.*)/, $1)}++' |
       FZF_DEFAULT_OPTS="--height ${FZF_TMUX_HEIGHT:-40%} $FZF_DEFAULT_OPTS -n2..,.. --tiebreak=index --header 'LS_LOCAL is set, querying local history. unset LS_LOCAL to resume.' --bind=ctrl-r:toggle-sort,ctrl-z:ignore $FZF_CTRL_R_OPTS --query=${(qqq)LBUFFER} +m" $(__fzfcmd)) )
   else
-    selected=( $(${LOKI_SHELL_DIR:-$HOME/.loki-shell}/bin/logcli query "{job=\"shell\", host=\"$HOST\"}" --addr=$LOKI_URL --limit=50000 --batch=1000 --since=720h -o raw --quiet | _bufcmd |
+    selected=( $(${LOKI_SHELL_DIR:-$HOME/.loki-shell}/bin/logcli query "{job=\"shell\", host=\"$HOST\", dropped!=\"true\"}" --addr=$LOKI_URL --limit=50000 --batch=1000 --since=720h -o raw --quiet | _bufcmd |
       FZF_DEFAULT_OPTS="--height ${FZF_TMUX_HEIGHT:-40%} $FZF_DEFAULT_OPTS -n2..,.. --tiebreak=index --header 'ctrl-r to load last 1 year for all hosts, export LS_LOCAL=true for querying builtin history, export PRIVATE=true to not send commands to Loki.' --bind 'ctrl-r:reload(source ${LOKI_SHELL_DIR:-$HOME/.loki-shell}/shell/loki-shell.zsh && _load_all)' $FZF_CTRL_R_OPTS --query=${(qqq)LBUFFER} +m" $(__fzfcmd)) )
   fi
   local ret=$?

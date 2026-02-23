@@ -141,6 +141,11 @@ cp "$loki_shell_base"/shell/loki-shell.bash "$prefix"/shell/
 cp "$loki_shell_base"/shell/loki-shell.zsh "$prefix"/shell/
 cp "$loki_shell_base"/shell/loki-shell-send.sh "$prefix"/shell/
 
+# copy sample drop-patterns file if none exists
+if [ ! -f "$prefix"/config/drop-patterns ]; then
+  cp "$loki_shell_base"/cfg-template/drop-patterns.sample "$prefix"/config/drop-patterns
+fi
+
 check_binary() {
   echo -n "  - Checking ${1} executable ... "
   local output

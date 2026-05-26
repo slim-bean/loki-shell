@@ -1,0 +1,59 @@
+#!/bin/bash
+# Mock curl for testing loki-shell-send.sh
+#
+# Behaviour controlled by environment variables:
+#   MOCK_CURL_EXIT     - exit code (default 0)
+#   MOCK_CURL_HTTP     - HTTP status code to report via -w (default 204)
+#   MOCK_CURL_BODY     - response body to print (default "")
+#
+# Side effects (for assertions):
+#   Appends the JSON body (-d arg) to $MOCK_CURL_LOG if set
+#   Writes full arg list to $MOCK_CURL_ARGS if set
+
+exit_code="${MOCK_CURL_EXIT:-0}"
+http_code="${MOCK_CURL_HTTP:-204}"
+body="${MOCK_CURL_BODY:-}"
+
+# Parse args to find the -d payload and detect -w format
+payload=""
+has_write_out=false
+write_out_fmt=""
+url=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -d)  shift; payload="$1" ;;
+    -w)  shift; has_write_out=true; write_out_fmt="$1" ;;
+    -o)  shift ;;                       # -o takes an arg (e.g. /dev/null)
+    -X)  shift ;;                       # -X takes an arg (e.g. POST)
+    -H)  shift ;;                       # -H takes an arg (header)
+    -s|-f|-q) ;;                        # standalone flags, no arg
+    http*|https*) url="$1" ;;
+  esac
+  shift
+done
+
+# Log the payload for test assertions
+if [ -n "$MOCK_CURL_LOG" ] && [ -n "$payload" ]; then
+  echo "$payload" >> "$MOCK_CURL_LOG"
+fi
+
+# Log full invocation
+if [ -n "$MOCK_CURL_ARGS" ]; then
+  echo "url=$url payload=$payload" >> "$MOCK_CURL_ARGS"
+fi
+
+# Output body
+if [ -n "$body" ]; then
+  printf '%s' "$body"
+fi
+
+# If -w was used, substitute %{http_code}
+if $has_write_out; then
+  fmt="$write_out_fmt"
+  fmt="${fmt//'%{http_code}'/$http_code}"
+  # Handle literal \n in -w format string
+  fmt=$(printf '%b' "$fmt")
+  printf '%s' "$fmt"
+fi
+
+exit "$exit_code"

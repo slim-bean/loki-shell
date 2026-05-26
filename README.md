@@ -184,7 +184,10 @@ loki-shell includes a spool file at `~/.loki-shell/data/spool` that acts as a si
 
 ## Troubleshooting
 
-Failures to send to Loki are sent to the system log via the `logger` command, search your system log for the tag `loki-shell`.
+loki-shell logs to two places:
+
+1. **Log file**: `~/.loki-shell/data/loki-shell.log` — contains timestamped messages for all send attempts, errors, spool operations, and drop-pattern matches. The log auto-rotates at 1MB (old log kept as `loki-shell.log.old`).
+2. **System log**: output is also piped to the system logger via `logger -t loki-shell`.
 
 Loki failures and issues should be visible in the loki log file either with `docker logs loki-shell` or wherever systemd logs depending on how you ran Loki.
 
@@ -192,6 +195,15 @@ If `ctrl-r` doesn't produce any results, you can test the command used in the hi
 
 ```
 $HOME/.loki-shell/bin/logcli query "{job=\"shell\", host=\"$HOSTNAME\"}" --addr=$LOKI_URL --limit=50000 --batch=1000 --since=720h -o raw --quiet
+```
+
+## Testing
+
+The test suite uses [bats-core](https://github.com/bats-core/bats-core) with a mock `curl` so no running Loki is needed:
+
+```bash
+brew install bats-core   # or your package manager
+bats test/
 ```
 
 ## Uninstalling

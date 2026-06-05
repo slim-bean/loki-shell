@@ -34,9 +34,15 @@ else
   _loki_jq=""
 fi
 
+# Unescape a spool command field: \n → newline, \\ → \
+# Uses jq filter syntax (applied inside _loki_build_payload).
+_loki_jq_unescape='gsub("\\\\\\\\";"")|gsub("\\\\n";"\n")|gsub("";"\\")'  # \\ → RS, \n → NL, RS → \
+
 # Build a Loki push API JSON payload from spool lines and/or a new entry.
-# Each line in the spool file is: <nanosecond_timestamp>\t<command>
-# Arguments: $1 = host, remaining args via stdin (spool lines) + $2/$3 for new entry
+# Each line in the spool file is: <nanosecond_timestamp>\t<escaped_command>
+# Commands are escaped: \\ → \\\\, newline → \\n  (reversed on read).
+# Lines without a tab are silently skipped (malformed).
+# Arguments: $1 = host, $2/$3 = new timestamp/command (optional), $4 = spool file
 _loki_build_payload() {
   local host="$1" new_ts="$2" new_cmd="$3" spool_file="$4"
 
@@ -44,8 +50,9 @@ _loki_build_payload() {
     if [ -n "$new_ts" ]; then
       # Spool entries + new command
       $_loki_jq -Rc --arg host "$host" --arg new_ts "$new_ts" --arg new_cmd "$new_cmd" '
-        # Collect all spool lines as [ts, cmd] pairs
-        split("\t") | [.[0], (.[1:] | join("\t"))]
+        if contains("\t") then
+          split("\t") | [.[0], (.[1:] | join("\t") | '"$_loki_jq_unescape"')]
+        else empty end
       ' "$spool_file" | $_loki_jq -sc --arg host "$host" --arg new_ts "$new_ts" --arg new_cmd "$new_cmd" '
         . + [[$new_ts, $new_cmd]] |
         {"streams":[{"stream":{"job":"shell","host":$host},"values": map([.[0], .[1]])}]}
@@ -53,7 +60,9 @@ _loki_build_payload() {
     else
       # Spool entries only
       $_loki_jq -Rc --arg host "$host" '
-        split("\t") | [.[0], (.[1:] | join("\t"))]
+        if contains("\t") then
+          split("\t") | [.[0], (.[1:] | join("\t") | '"$_loki_jq_unescape"')]
+        else empty end
       ' "$spool_file" | $_loki_jq -sc --arg host "$host" '
         {"streams":[{"stream":{"job":"shell","host":$host},"values": map([.[0], .[1]])}]}
       '
@@ -68,8 +77,11 @@ _loki_build_payload() {
 
 # Append a command to the spool file
 # $1 = nanosecond timestamp, $2 = command
+# Escapes backslashes and newlines so each entry is exactly one line.
 _loki_spool_append() {
-  printf '%s\t%s\n' "$1" "$2" >> "$_loki_spool"
+  local escaped="${2//\\/\\\\}"    # \ → \\\\
+  escaped="${escaped//$'\n'/\\n}"   # newline → \\n
+  printf '%s\t%s\n' "$1" "$escaped" >> "$_loki_spool"
 }
 
 # Send command to Loki, managing the spool file for ordering guarantees.

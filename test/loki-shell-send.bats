@@ -321,6 +321,77 @@ log_contents() {
   [ "$(last_payload | jq -r '.streams[0].values[0][1]')" = 'echo "hello world" | grep -E "h(e|a)llo" && echo $HOME' ]
 }
 
+@test "spool_append: escapes newlines in commands" {
+  rm -f "$_loki_spool"
+  _loki_spool_append "1000000000000000000" $'line one\nline two\nline three'
+  # Should be exactly 1 line in the spool file
+  [ "$(spool_lines)" = "1" ]
+  # Should contain escaped \n, not actual newlines
+  [[ "$(cat "$_loki_spool")" == *'line one\nline two\nline three'* ]]
+}
+
+@test "spool_append: escapes backslashes before newlines" {
+  rm -f "$_loki_spool"
+  _loki_spool_append "1000000000000000000" $'echo "hello\\nworld"\nls -la'
+  [ "$(spool_lines)" = "1" ]
+  # Backslash should be doubled, newline escaped
+  [[ "$(cat "$_loki_spool")" == *'hello\\nworld'* ]]
+}
+
+@test "build_payload: unescapes newlines from spool" {
+  printf '1000000000000000000\tline one\\nline two\\nline three\n' > "$_loki_spool"
+  local p
+  p=$(_loki_build_payload "myhost" "" "" "$_loki_spool")
+  # Command should have actual newlines restored
+  local cmd
+  cmd=$(echo "$p" | jq -r '.streams[0].values[0][1]')
+  [ "$(echo "$cmd" | wc -l | tr -d ' ')" = "3" ]
+  [ "$(echo "$cmd" | head -1)" = "line one" ]
+  [ "$(echo "$cmd" | tail -1)" = "line three" ]
+}
+
+@test "build_payload: round-trips backslash + newline" {
+  rm -f "$_loki_spool"
+  local original=$'echo "hello\\nworld"\nls -la'
+  _loki_spool_append "1000000000000000000" "$original"
+  local p
+  p=$(_loki_build_payload "myhost" "" "" "$_loki_spool")
+  local restored
+  restored=$(echo "$p" | jq -r '.streams[0].values[0][1]')
+  [ "$restored" = "$original" ]
+}
+
+@test "build_payload: skips malformed spool lines (no tab)" {
+  printf '1000000000000000000\tgood-cmd\n' > "$_loki_spool"
+  printf 'bare line with no tab\n' >> "$_loki_spool"
+  printf '2000000000000000000\talso-good\n' >> "$_loki_spool"
+  printf 'another bare line\n' >> "$_loki_spool"
+  local p
+  p=$(_loki_build_payload "myhost" "3000000000000000000" "new" "$_loki_spool")
+  # Should have 3 entries: 2 good spool + 1 new (bare lines skipped)
+  [ "$(echo "$p" | jq '.streams[0].values | length')" = "3" ]
+  [ "$(echo "$p" | jq -r '.streams[0].values[0][1]')" = "good-cmd" ]
+  [ "$(echo "$p" | jq -r '.streams[0].values[1][1]')" = "also-good" ]
+  [ "$(echo "$p" | jq -r '.streams[0].values[2][1]')" = "new" ]
+}
+
+@test "e2e: multi-line command survives spool round-trip" {
+  local cmd=$'for i in 1 2 3; do\n  echo $i\ndone'
+  export MOCK_CURL_EXIT=7
+  run _loki_send "http://fake:4100" "myhost" "$cmd"
+  [ "$status" -eq 1 ]
+  # Spool should have exactly 1 line (newlines escaped)
+  [ "$(spool_lines)" = "1" ]
+
+  export MOCK_CURL_EXIT=0
+  export MOCK_CURL_HTTP=204
+  run _loki_send "http://fake:4100" "myhost" "echo done"
+  [ "$status" -eq 0 ]
+  [ ! -f "$_loki_spool" ]
+  # The multi-line command should be restored in the payload
+  [ "$(last_payload | jq -r '.streams[0].values[0][1]')" = "$cmd" ]
+}
+
 @test "e2e: spool survives commands with special chars" {
   local cmd='echo "hello world" | awk '"'"'{print $1}'"'"' && rm -rf /'
   export MOCK_CURL_EXIT=7

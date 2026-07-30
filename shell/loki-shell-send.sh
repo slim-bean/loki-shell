@@ -34,6 +34,45 @@ else
   _loki_jq=""
 fi
 
+# Optional proxy for reaching Loki (e.g. socks5h://127.0.0.1:1055 for a SOCKS
+# tunnel). Resolution order, checked at EVERY call so running shells pick up
+# changes without re-sourcing:
+#   1. $LOKI_SHELL_PROXY environment variable, if set
+#   2. contents of $LOKI_SHELL_DIR/config/proxy (first line), if non-empty
+# Delete the file (or unset the var) to go back to direct connections.
+_loki_proxy_file="${LOKI_SHELL_DIR:-$HOME/.loki-shell}/config/proxy"
+_loki_proxy() {
+  if [ -n "${LOKI_SHELL_PROXY:-}" ]; then
+    printf '%s' "$LOKI_SHELL_PROXY"
+  elif [ -s "$_loki_proxy_file" ]; then
+    head -n1 "$_loki_proxy_file" | tr -d '[:space:]'
+  fi
+}
+
+# curl wrapper honoring the optional proxy. A function (not inline expansion)
+# so it works when sourced by bash AND zsh.
+_loki_curl() {
+  local _proxy
+  _proxy=$(_loki_proxy)
+  if [ -n "$_proxy" ]; then
+    curl --proxy "$_proxy" "$@"
+  else
+    curl "$@"
+  fi
+}
+
+# logcli wrapper honoring the optional proxy via LOKI_HTTP_PROXY_URL (needs
+# logcli >= 3.4). An explicitly exported LOKI_HTTP_PROXY_URL takes precedence.
+_loki_logcli() {
+  local _proxy
+  _proxy=$(_loki_proxy)
+  if [ -n "$_proxy" ] && [ -z "${LOKI_HTTP_PROXY_URL:-}" ]; then
+    LOKI_HTTP_PROXY_URL="$_proxy" "${LOKI_SHELL_DIR:-$HOME/.loki-shell}/bin/logcli" "$@"
+  else
+    "${LOKI_SHELL_DIR:-$HOME/.loki-shell}/bin/logcli" "$@"
+  fi
+}
+
 # Unescape a spool command field: \n → newline, \\ → \
 # Uses jq filter syntax (applied inside _loki_build_payload).
 _loki_jq_unescape='gsub("\\\\\\\\";"")|gsub("\\\\n";"\n")|gsub("";"\\")'  # \\ → RS, \n → NL, RS → \
@@ -113,7 +152,7 @@ _loki_send() {
         local drop_ts="$(date +%s)000000000"
         local drop_payload=$($_loki_jq -nc --arg host "$host" --arg ts "$drop_ts" --arg msg "$drop_msg" \
           '{"streams":[{"stream":{"job":"shell","host":$host,"dropped":"true"},"values":[[$ts,$msg]]}]}')
-        curl -sf -o /dev/null -X POST -H "Content-Type: application/json" \
+        _loki_curl -sf -o /dev/null -X POST -H "Content-Type: application/json" \
           "$loki_url/loki/api/v1/push" -d "$drop_payload" 2>/dev/null
         return 0
       fi
@@ -142,7 +181,7 @@ _loki_send() {
     fi
     _loki_log "sending ${spool_count} spooled + 1 new entry to $loki_url"
     local curl_body curl_rc
-    curl_body=$(curl -s -w '\n%{http_code}' -X POST -H "Content-Type: application/json" \
+    curl_body=$(_loki_curl -s -w '\n%{http_code}' -X POST -H "Content-Type: application/json" \
         "$loki_url/loki/api/v1/push" -d "$payload" 2>&1)
     curl_rc=$?
     local http_code="${curl_body##*$'\n'}"
@@ -175,7 +214,7 @@ _loki_send() {
       return 1
     fi
     local curl_body curl_rc
-    curl_body=$(curl -s -w '\n%{http_code}' -X POST -H "Content-Type: application/json" \
+    curl_body=$(_loki_curl -s -w '\n%{http_code}' -X POST -H "Content-Type: application/json" \
         "$loki_url/loki/api/v1/push" -d "$payload" 2>&1)
     curl_rc=$?
     local http_code="${curl_body##*$'\n'}"

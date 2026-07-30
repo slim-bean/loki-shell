@@ -33,7 +33,7 @@ _load_all_cmd(){
   for i in `seq 720 720 8640`
   do
     START=$(_loki_date_iso -$i)
-    ${LOKI_SHELL_DIR:-$HOME/.loki-shell}/bin/logcli query "{job=\"shell\", dropped!=\"true\"}" --addr=$LOKI_URL --limit=50000 --batch=1000 --from=$START --to=$END -o raw --quiet
+    _loki_logcli query "{job=\"shell\", dropped!=\"true\"}" --addr=$LOKI_URL --limit=50000 --batch=1000 --from=$START --to=$END -o raw --quiet
     END=$START
   done
 }
@@ -53,7 +53,7 @@ __fzf_history__() {
     ) || return
   else
     selected=$(
-      ${LOKI_SHELL_DIR:-$HOME/.loki-shell}/bin/logcli query "{job=\"shell\", host=\"$HOSTNAME\", dropped!=\"true\"}" --addr=$LOKI_URL --limit=50000 --batch=1000 --since=720h -o raw --quiet | _bufcmd |
+      _loki_logcli query "{job=\"shell\", host=\"$HOSTNAME\", dropped!=\"true\"}" --addr=$LOKI_URL --limit=50000 --batch=1000 --since=720h -o raw --quiet | _bufcmd |
         FZF_DEFAULT_OPTS="--height ${FZF_TMUX_HEIGHT:-40%} $FZF_DEFAULT_OPTS -n2..,.. --tiebreak=index --header 'ctrl-r to load last 1 year for all hosts, export LS_LOCAL=true for querying builtin history, export PRIVATE=true to not send commands to Loki.' --bind 'ctrl-r:reload(source ${LOKI_SHELL_DIR:-$HOME/.loki-shell}/shell/loki-shell.bash && _load_all)' $FZF_CTRL_R_OPTS +m " $(__fzfcmd) --query "$READLINE_LINE"
     ) || return
   fi
@@ -80,4 +80,4 @@ function _send_to_loki {
 }
 [[ $PROMPT_COMMAND =~ _send_to_loki ]] || PROMPT_COMMAND="_send_to_loki;${PROMPT_COMMAND:-:}"
 
-alias hist="${LOKI_SHELL_DIR:-$HOME/.loki-shell}/bin/logcli --addr=$LOKI_URL --quiet"
+hist() { _loki_logcli --addr="$LOKI_URL" --quiet "$@"; }

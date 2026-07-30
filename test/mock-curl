@@ -19,9 +19,11 @@ payload=""
 has_write_out=false
 write_out_fmt=""
 url=""
+proxy=""
 while [ $# -gt 0 ]; do
   case "$1" in
     -d)  shift; payload="$1" ;;
+    --proxy) shift; proxy="$1" ;;
     -w)  shift; has_write_out=true; write_out_fmt="$1" ;;
     -o)  shift ;;                       # -o takes an arg (e.g. /dev/null)
     -X)  shift ;;                       # -X takes an arg (e.g. POST)
@@ -39,7 +41,7 @@ fi
 
 # Log full invocation
 if [ -n "$MOCK_CURL_ARGS" ]; then
-  echo "url=$url payload=$payload" >> "$MOCK_CURL_ARGS"
+  echo "url=$url payload=$payload proxy=$proxy" >> "$MOCK_CURL_ARGS"
 fi
 
 # Output body

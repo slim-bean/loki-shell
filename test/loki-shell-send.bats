@@ -405,3 +405,55 @@ log_contents() {
   [ ! -f "$_loki_spool" ]
   [ "$(last_payload | jq -r '.streams[0].values[0][1]')" = "$cmd" ]
 }
+
+# ── proxy support ────────────────────────────────────────────────────────────
+
+last_args() {
+  tail -1 "$MOCK_CURL_ARGS" 2>/dev/null
+}
+
+@test "proxy: none configured — curl called without --proxy" {
+  run _loki_send "http://fake:4100" "myhost" "echo hi"
+  [ "$status" -eq 0 ]
+  [[ "$(last_args)" == *"proxy=" ]]
+}
+
+@test "proxy: LOKI_SHELL_PROXY env var passed to curl" {
+  export LOKI_SHELL_PROXY="socks5h://127.0.0.1:1055"
+  run _loki_send "http://fake:4100" "myhost" "echo hi"
+  [ "$status" -eq 0 ]
+  [[ "$(last_args)" == *"proxy=socks5h://127.0.0.1:1055" ]]
+}
+
+@test "proxy: config/proxy file passed to curl" {
+  echo "socks5h://127.0.0.1:2233" > "$LOKI_SHELL_DIR/config/proxy"
+  run _loki_send "http://fake:4100" "myhost" "echo hi"
+  [ "$status" -eq 0 ]
+  [[ "$(last_args)" == *"proxy=socks5h://127.0.0.1:2233" ]]
+}
+
+@test "proxy: env var takes precedence over file" {
+  export LOKI_SHELL_PROXY="socks5h://127.0.0.1:1055"
+  echo "socks5h://127.0.0.1:2233" > "$LOKI_SHELL_DIR/config/proxy"
+  run _loki_send "http://fake:4100" "myhost" "echo hi"
+  [[ "$(last_args)" == *"proxy=socks5h://127.0.0.1:1055" ]]
+}
+
+@test "proxy: file contents are trimmed of whitespace" {
+  printf '  socks5h://127.0.0.1:2233 \n' > "$LOKI_SHELL_DIR/config/proxy"
+  run _loki_proxy
+  [ "$output" = "socks5h://127.0.0.1:2233" ]
+}
+
+@test "proxy: toggling the file mid-session changes behavior without re-sourcing" {
+  run _loki_send "http://fake:4100" "myhost" "echo direct"
+  [[ "$(last_args)" == *"proxy=" ]]
+
+  echo "socks5h://127.0.0.1:2233" > "$LOKI_SHELL_DIR/config/proxy"
+  run _loki_send "http://fake:4100" "myhost" "echo proxied"
+  [[ "$(last_args)" == *"proxy=socks5h://127.0.0.1:2233" ]]
+
+  rm "$LOKI_SHELL_DIR/config/proxy"
+  run _loki_send "http://fake:4100" "myhost" "echo direct again"
+  [[ "$(last_args)" == *"proxy=" ]]
+}

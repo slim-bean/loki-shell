@@ -6,6 +6,14 @@ This README picks up where this [article](article/article.md) left off, which co
 
 ## What's New
 
+### 2026/07/30
+
+* Optional proxy support for reaching Loki through a SOCKS or HTTP proxy (e.g. a userspace `tailscaled --socks5-server`, ssh `-D`, corporate proxy, ...). Both the curl pushes and the logcli queries (ctrl-r, `hist`) honor it. Configure one of:
+  * `echo 'socks5h://127.0.0.1:1055' > ~/.loki-shell/config/proxy` — checked at every call, so **all running shells switch immediately**; delete the file to go direct again. Great for toggling when you move on/off a network.
+  * `export LOKI_SHELL_PROXY=socks5h://127.0.0.1:1055` — env var, takes precedence over the file.
+  * Queries need logcli v3.4+ (older logcli silently ignores proxies); use a `socks5h://` URL so DNS is resolved by the proxy.
+* `hist` is now a function instead of an alias (same usage), so it picks up `$LOKI_URL` and proxy changes at call time.
+
 ### 2022/01/09
 
 * Hitting `ctrl-r` again when the search window is open will search for ALL the shell history (removes the host label from the query) searching up to the last 12 months
